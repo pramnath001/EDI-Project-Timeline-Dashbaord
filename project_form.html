@@ -521,7 +521,7 @@
 
 
     // Form submission handler
-		document.getElementById('ediForm').addEventListener('submit', function(e) {
+		document.getElementById('ediForm').addEventListener('submit', async function(e) {
 		  e.preventDefault();
 
 		  // Collect form data
@@ -554,16 +554,23 @@
 		  const summaryDiv = document.getElementById('timelineSummary');
 		  summaryDiv.innerHTML = generateSummaryTable(timelineData);
 
-		  // Create JSONP request
-		  const script = document.createElement('script');
-		  const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-		  
-		  window[callbackName] = function(response) {
-			delete window[callbackName];
-			document.body.removeChild(script);
+		  try {
+			// Use a proxy server to bypass CORS
+			const proxyUrl = 'https://corsproxy.io/?';
+			const scriptUrl = 'https://script.google.com/macros/s/AKfycbxmM_taae0pIVFdqObxw_djjoCRsjNH05V-O8fqeaOAT6yS2t-KbR_DZyivTNdsq6U/exec';
 			
-			if (response.status === "success") {
-			  const sheetUrl = response.sheetUrl;
+			const response = await fetch(proxyUrl + encodeURIComponent(scriptUrl), {
+			  method: 'POST',
+			  headers: {
+				'Content-Type': 'application/json',
+			  },
+			  body: JSON.stringify(data)
+			});
+
+			const result = await response.json();
+
+			if (result.status === "success") {
+			  const sheetUrl = result.sheetUrl;
 			  const dataObj = Object.fromEntries(formData.entries());
 			  dataObj.sheetLink = sheetUrl;
 
@@ -574,28 +581,19 @@
 				<p style="color:green">✔ Google Sheet created! <a href="${sheetUrl}" target="_blank">📄 View Sheet</a></p>
 			  `;
 			} else {
-			  console.error("Google Sheet creation failed:", response.message);
-			  generateExcelFile(data);
-			  document.getElementById('result').innerHTML = `
-				<p style="color:orange">⚠ Could not create Google Sheet. Local Excel file generated instead.</p>
-			  `;
+			  throw new Error(result.message || "Unknown error");
 			}
-		  };
-
-		  // Convert form data to URL parameters
-		  const params = new URLSearchParams();
-		  for (const key in data) {
-			params.append(key, data[key]);
+		  } catch (error) {
+			console.error("Google Sheet creation failed:", error);
+			generateExcelFile(data);
+			document.getElementById('result').innerHTML = `
+			  <p style="color:orange">⚠ Could not create Google Sheet. Local Excel file generated instead.</p>
+			  <p>Error: ${error.message}</p>
+			`;
 		  }
-		  params.append('callback', callbackName);
-
-		  script.src = "https://script.google.com/macros/s/AKfycbxmM_taae0pIVFdqObxw_djjoCRsjNH05V-O8fqeaOAT6yS2t-KbR_DZyivTNdsq6U/exec?" + params.toString();
-		  document.body.appendChild(script);
 
 		  renderProjectHistory();
 		});
-
-
 
     // Generate summary table
     function generateSummaryTable(timelineData) {
