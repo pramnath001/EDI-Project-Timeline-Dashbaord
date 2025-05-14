@@ -525,9 +525,8 @@
 		  e.preventDefault();
 		  
 		  // Collect form data
-		  const formData = new FormData(this);
-		  const data = Object.fromEntries(formData.entries());
-
+		const rawForm = new FormData(this);
+		const data = Object.fromEntries(rawForm.entries());
 		  // Collect phase data
 		  const timelineData = collectPhaseData();
 
