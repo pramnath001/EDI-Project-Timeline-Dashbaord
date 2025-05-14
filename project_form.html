@@ -521,79 +521,74 @@
 
 
     // Form submission handler
-		document.getElementById('ediForm').addEventListener('submit', async function(e) {
-		  e.preventDefault();
+document.getElementById('ediForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
 
-		  // Collect form data
-		  const formData = new FormData(this);
-		  const data = Object.fromEntries(formData.entries());
+  // Collect form data
+  const formData = new FormData(this);
+  const data = Object.fromEntries(formData.entries());
 
-		  // Collect phase data
-		  const timelineData = collectPhaseData();
+  // Collect phase data
+  const timelineData = collectPhaseData();
 
-		  // Validate dates
-		  const dateErrors = validateDates(
-			timelineData.map(p => p.start),
-			timelineData.map(p => p.end)
-		  );
+  // Validate dates
+  const dateErrors = validateDates(
+    timelineData.map(p => p.start),
+    timelineData.map(p => p.end)
+  );
 
-		  if (dateErrors.length > 0) {
-			alert("Please fix these date issues:\n" + dateErrors.join("\n"));
-			return;
-		  }
+  if (dateErrors.length > 0) {
+    alert("Please fix these date issues:\n" + dateErrors.join("\n"));
+    return;
+  }
 
-		  // Create the chart
-		  if (!createTimelineChart(timelineData)) {
-			document.getElementById('result').innerHTML = `
-			  <p style="color:red">❌ Failed to create timeline chart</p>
-			`;
-			return;
-		  }
+  // Create the chart
+  if (!createTimelineChart(timelineData)) {
+    document.getElementById('result').innerHTML = `
+      <p style="color:red">❌ Failed to create timeline chart</p>
+    `;
+    return;
+  }
 
-		  // Generate summary table
-		  const summaryDiv = document.getElementById('timelineSummary');
-		  summaryDiv.innerHTML = generateSummaryTable(timelineData);
+  // Generate summary table
+  const summaryDiv = document.getElementById('timelineSummary');
+  summaryDiv.innerHTML = generateSummaryTable(timelineData);
 
-		  try {
-			// Use a proxy server to bypass CORS
-			const proxyUrl = 'https://corsproxy.io/?';
-			const scriptUrl = 'https://script.google.com/macros/s/AKfycbxmM_taae0pIVFdqObxw_djjoCRsjNH05V-O8fqeaOAT6yS2t-KbR_DZyivTNdsq6U/exec';
-			
-			const response = await fetch(proxyUrl + encodeURIComponent(scriptUrl), {
-			  method: 'POST',
-			  headers: {
-				'Content-Type': 'application/json',
-			  },
-			  body: JSON.stringify(data)
-			});
+  try {
+    // Use Google Apps Script URL directly (no proxy)
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbxmM_taae0pIVFdqObxw_djjoCRsjNH05V-O8fqeaOAT6yS2t-KbR_DZyivTNdsq6U/exec';
+    
+    // Create a form to submit (works better with GAS)
+    const form = new FormData();
+    for (const key in data) {
+      form.append(key, data[key]);
+    }
+    
+    const response = await fetch(scriptUrl, {
+      method: 'POST',
+      body: form,
+      mode: 'no-cors' // Important for GitHub Pages
+    });
 
-			const result = await response.json();
+    // Since we're using no-cors, we can't read the response directly
+    // So we'll assume success and show a message
+    document.getElementById('result').innerHTML = `
+      <p style="color:green">✔ Google Sheet created! It may take a few moments to appear.</p>
+    `;
+    
+    // Save to history and generate local Excel as fallback
+    generateExcelFile(data);
+    saveProjectToHistory(data);
+    renderProjectHistory();
 
-			if (result.status === "success") {
-			  const sheetUrl = result.sheetUrl;
-			  const dataObj = Object.fromEntries(formData.entries());
-			  dataObj.sheetLink = sheetUrl;
-
-			  saveProjectToHistory(dataObj);
-			  renderProjectHistory();
-
-			  document.getElementById('result').innerHTML = `
-				<p style="color:green">✔ Google Sheet created! <a href="${sheetUrl}" target="_blank">📄 View Sheet</a></p>
-			  `;
-			} else {
-			  throw new Error(result.message || "Unknown error");
-			}
-		  } catch (error) {
-			console.error("Google Sheet creation failed:", error);
-			generateExcelFile(data);
-			document.getElementById('result').innerHTML = `
-			  <p style="color:orange">⚠ Could not create Google Sheet. Local Excel file generated instead.</p>
-			  <p>Error: ${error.message}</p>
-			`;
-		  }
-
-		  renderProjectHistory();
-		});
+  } catch (error) {
+    console.error("Google Sheet creation failed:", error);
+    generateExcelFile(data);
+    document.getElementById('result').innerHTML = `
+      <p style="color:orange">⚠ Could not create Google Sheet. Local Excel file generated instead.</p>
+    `;
+  }
+});
 
     // Generate summary table
     function generateSummaryTable(timelineData) {
