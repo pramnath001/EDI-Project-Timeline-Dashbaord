@@ -554,44 +554,45 @@
 		  const summaryDiv = document.getElementById('timelineSummary');
 		  summaryDiv.innerHTML = generateSummaryTable(timelineData);
 
-		  // ✅ Send to Google Apps Script
-		  fetch("https://script.google.com/macros/s/AKfycbxmM_taae0pIVFdqObxw_djjoCRsjNH05V-O8fqeaOAT6yS2t-KbR_DZyivTNdsq6U/exec", {
-			method: "POST",
-			body: new URLSearchParams(formData) // ✅ use the same formData
-		  })
-			.then(res => res.text())
-			.then(text => {
-			  try {
-				const result = JSON.parse(text);
-				const sheetUrl = result.sheetUrl;
+		  // Create JSONP request
+		  const script = document.createElement('script');
+		  const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+		  
+		  window[callbackName] = function(response) {
+			delete window[callbackName];
+			document.body.removeChild(script);
+			
+			if (response.status === "success") {
+			  const sheetUrl = response.sheetUrl;
+			  const dataObj = Object.fromEntries(formData.entries());
+			  dataObj.sheetLink = sheetUrl;
 
-				const dataObj = Object.fromEntries(formData.entries());
-				dataObj.sheetLink = sheetUrl;
+			  saveProjectToHistory(dataObj);
+			  renderProjectHistory();
 
-				saveProjectToHistory(dataObj);
-				renderProjectHistory();
-
-				document.getElementById('result').innerHTML = `
-				  <p style="color:green">✔ Google Sheet created! <a href="${sheetUrl}" target="_blank">📄 View Sheet</a></p>
-				`;
-			  } catch (err) {
-				console.error("Parsing failed:", err);
-				generateExcelFile(data);
-				document.getElementById('result').innerHTML = `
-				  <p style="color:orange">⚠ Could not create Google Sheet. Local Excel file generated instead.</p>
-				`;
-			  }
-			})
-			.catch(error => {
-			  console.error("Google Sheet creation failed:", error);
+			  document.getElementById('result').innerHTML = `
+				<p style="color:green">✔ Google Sheet created! <a href="${sheetUrl}" target="_blank">📄 View Sheet</a></p>
+			  `;
+			} else {
+			  console.error("Google Sheet creation failed:", response.message);
 			  generateExcelFile(data);
 			  document.getElementById('result').innerHTML = `
 				<p style="color:orange">⚠ Could not create Google Sheet. Local Excel file generated instead.</p>
 			  `;
-			});
+			}
+		  };
+
+		  // Convert form data to URL parameters
+		  const params = new URLSearchParams();
+		  for (const key in data) {
+			params.append(key, data[key]);
+		  }
+		  params.append('callback', callbackName);
+
+		  script.src = "https://script.google.com/macros/s/AKfycbxmM_taae0pIVFdqObxw_djjoCRsjNH05V-O8fqeaOAT6yS2t-KbR_DZyivTNdsq6U/exec?" + params.toString();
+		  document.body.appendChild(script);
 
 		  renderProjectHistory();
-		  document.getElementById('ediForm').reset();
 		});
 
 
