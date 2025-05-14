@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EDI Project Plan Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+   <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    .phase-row {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 2fr;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border-left: 6px solid #004080;
+      border-radius: 8px;
+      background: #f9fbfe;
+      margin-bottom: 10px;
+    }
+    .phase-title {
+      font-weight: bold;
+      color: #004080;
+    }
+    .status-select {
+      font-weight: bold;
+      border: none;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .status-Open { background-color: #eee; color: #333; }
+    .status-InProgress { background-color: #007bff; color: white; }
+    .status-Pending { background-color: #ffc107; color: black; }
+    .status-FollowupRequired { background-color: #dc3545; color: white; }
+    .status-Closed { background-color: #28a745; color: white; }
+    .owner-CustomerEDI { background-color: #6f42c1; color: white; padding: 4px 8px; border-radius: 4px; }
+    .owner-NMBBusinessUser { background-color: #20c997; color: white; padding: 4px 8px; border-radius: 4px; }
+    .owner-NMBEDI { background-color: #17a2b8; color: white; padding: 4px 8px; border-radius: 4px; }
+    .owner-NMBITInfra { background-color: #fd7e14; color: white; padding: 4px 8px; border-radius: 4px; }
+    .owner-Others { background-color: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; }
+    select[name^='phase_owner_'] {
+      font-weight: bold;
+      border-radius: 4px;
+      border: none;
+      padding: 8px;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #eef3f9;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #004080;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 1.5em;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      padding: 40px;
+      max-width: 1200px;
+      margin: auto;
+    }
+    .form-section, .phase-section {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+    }
+    .form-section h3, .phase-section h3 {
+      margin-top: 0;
+      color: #004080;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+    label {
+      display: block;
+      margin: 15px 0 5px;
+      font-weight: bold;
+      color: #333;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background: #004080;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #005cbf;
+    }
+    .error-message {
+      color: #dc3545;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    @media (max-width: 768px) {
+      .phase-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">EDI Project Plan Dashboard</div>
+  <form id="ediForm">
+    <div class="container">
+      <div class="form-section phase-section">
+        <h3>General Project Information</h3>
+        <div>
+          <label>Project Title</label>
+          <input type="text" name="projectTitle" required>
+        </div>
+        <div>
+          <label>Customer Name</label>
+          <input type="text" name="customerName" required>
+        </div>
+        <div>
+          <label>Start Date</label>
+          <input type="date" name="startDate" required>
+        </div>
+        <div>
+          <label>Go-Live Date</label>
+          <input type="date" name="goLiveDate" required>
+        </div>
+        <div>
+          <label>Contact Email</label>
+          <input type="email" name="contactEmail">
+        </div>
+        <div>
+          <label>NMB Ticket Number</label>
+          <input type="text" name="ticketNumber" required>
+        </div>
+        <div>
+          <label>Communication Channel</label>
+          <select name="channel" required>
+            <option value="OFTP2">OFTP2</option>
+            <option value="VAN">VAN</option>
+            <option value="AS2">AS2</option>
+          </select>
+        </div>
+        <div>
+          <label>EDI Document Types</label>
+          <textarea name="ediDocs" placeholder="Eg: DELFOR, DESADV, INVOIC" required></textarea>
+        </div>
+
+        <h3 style="margin-top: 40px">Project Phases</h3>
+        <div style="margin-bottom: 20px; font-size: 14px; display: flex; flex-wrap: wrap; gap: 10px;">
+          <span style="background:#eee; padding:4px 10px; border-radius:4px;">⚪ Open</span>
+          <span style="background:#007bff; color:white; padding:4px 10px; border-radius:4px;">🟦 In Progress</span>
+          <span style="background:#ffc107; padding:4px 10px; border-radius:4px;">🟨 Pending</span>
+          <span style="background:#dc3545; color:white; padding:4px 10px; border-radius:4px;">🟥 Follow up Required</span>
+          <span style="background:#28a745; color:white; padding:4px 10px; border-radius:4px;">🟩 Closed</span>
+        </div>
+        
+        <div class="form-section">
+          <div class="phase-row">
+            <div class="phase-title">1. Requirement Gathering</div>
+            <div><label>Start</label><input type="date" name="phase_start_1" required></div>
+            <div><label>End</label><input type="date" name="phase_end_1" required></div>
+            <div><label>Owner</label>
+              <select name="phase_owner_1" required>
+                <option>Customer EDI</option><option>NMB Business User</option><option>NMB EDI</option><option>NMB IT Infra</option><option>Others</option>
+              </select>
+            </div>
+            <div><label>Status</label>
+              <select name="phase_status_1" required>
+                <option>Open</option><option>In Progress</option><option>Pending</option><option>Follow up Required</option><option>Closed</option>
+              </select>
+            </div>
+            <div><label>Comment</label><textarea name="phase_comment_1" rows="1"></textarea></div>
+          </div>
+		  <div class="phase-row">
+			<div class="phase-title">2. Connectivity Setup</div>
+			<div><label>Start</label><input type="date" name="phase_start_2" required></div>
+			<div><label>End</label><input type="date" name="phase_end_2" required></div>
+			<div><label>Owner</label>
+			  <select name="phase_owner_2" required>
+				<option>Customer EDI</option><option>NMB Business User</option><option>NMB EDI</option><option>NMB IT Infra</option><option>Others</option>
+			  </select>
+			</div>
+			<div><label>Status</label>
+			  <select name="phase_status_2" required>
+				<option>Open</option><option>In Progress</option><option>Pending</option><option>Follow up Required</option><option>Closed</option>
+			  </select>
+			</div>
+			<div><label>Comment</label><textarea name="phase_comment_2" rows="1"></textarea></div>
+		  </div>
+		  <div class="phase-row">
+			<div class="phase-title">3. EDI Mapping Development</div>
+			<div><label>Start</label><input type="date" name="phase_start_3" required></div>
+			<div><label>End</label><input type="date" name="phase_end_3" required></div>
+			<div><label>Owner</label>
+			  <select name="phase_owner_3" required>
+				<option>Customer EDI</option><option>NMB Business User</option><option>NMB EDI</option><option>NMB IT Infra</option><option>Others</option>
+			  </select>
+			</div>
+			<div><label>Status</label>
+			  <select name="phase_status_3" required>
+				<option>Open</option><option>In Progress</option><option>Pending</option><option>Follow up Required</option><option>Closed</option>
+			  </select>
+			</div>
+			<div><label>Comment</label><textarea name="phase_comment_3" rows="1"></textarea></div>
+		  </div>
+		  <div class="phase-row">
+			<div class="phase-title">4. Internal Testing (QA)</div>
+			<div><label>Start</label><input type="date" name="phase_start_4" required></div>
+			<div><label>End</label><input type="date" name="phase_end_4" required></div>
+			<div><label>Owner</label>
+			  <select name="phase_owner_4" required>
+				<option>Customer EDI</option><option>NMB Business User</option><option>NMB EDI</option><option>NMB IT Infra</option><option>Others</option>
+			  </select>
+			</div>
+			<div><label>Status</label>
+			  <select name="phase_status_4" required>
+				<option>Open</option><option>In Progress</option><option>Pending</option><option>Follow up Required</option><option>Closed</option>
+			  </select>
+			</div>
+			<div><label>Comment</label><textarea name="phase_comment_4" rows="1"></textarea></div>
+		  </div>
+		  <div class="phase-row">
+			<div class="phase-title">5. Customer Testing (UAT)</div>
+			<div><label>Start</label><input type="date" name="phase_start_5" required></div>
+			<div><label>End</label><input type="date" name="phase_end_5" required></div>
+			<div><label>Owner</label>
+			  <select name="phase_owner_5" required>
+				<option>Customer EDI</option><option>NMB Business User</option><option>NMB EDI</option><option>NMB IT Infra</option><option>Others</option>
+			  </select>
+			</div>
+			<div><label>Status</label>	
+			  <select name="phase_status_5" required>
+				<option>Open</option><option>In Progress</option><option>Pending</option><option>Follow up Required</option><option>Closed</option>
+			  </select>
+			</div>
+			<div><label>Comment</label><textarea name="phase_comment_5" rows="1"></textarea></div>
+		  </div>
+		  <div class="phase-row">
+			<div class="phase-title">6. Go-Live Preparation</div>
+			<div><label>Start</label><input type="date" name="phase_start_6" required></div>
+			<div><label>End</label><input type="date" name="phase_end_6" required></div>
+			<div><label>Owner</label>
+			  <select name="phase_owner_6" required>
+				<option>Customer EDI</option><option>NMB Business User</option><option>NMB EDI</option><option>NMB IT Infra</option><option>Others</option>
+			  </select>
+			</div>
+			<div><label>Status</label>
+			  <select name="phase_status_6" required>
+				<option>Open</option><option>In Progress</option><option>Pending</option><option>Follow up Required</option><option>Closed</option>
+			  </select>
+			</div>
+			<div><label>Comment</label><textarea name="phase_comment_6" rows="1"></textarea></div>
+		  </div>
+		  <div class="phase-row">
+			<div class="phase-title">7. Go-Live & Hypercare</div>
+			<div><label>Start</label><input type="date" name="phase_start_7" required></div>
+			<div><label>End</label><input type="date" name="phase_end_7" required></div>
+			<div><label>Owner</label>
+			  <select name="phase_owner_7" required>
+				<option>Customer EDI</option><option>NMB Business User</option><option>NMB EDI</option><option>NMB IT Infra</option><option>Others</option>
+			  </select>
+			</div>
+			<div><label>Status</label>
+			  <select name="phase_status_7" required>
+				<option>Open</option><option>In Progress</option><option>Pending</option><option>Follow up Required</option><option>Closed</option>
+			  </select>
+			</div>
+			<div><label>Comment</label><textarea name="phase_comment_7" rows="1"></textarea></div>
+		  </div>
+		</div>         
+        <button type="submit">Generate Google Sheet</button>
+        <div id="result"></div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="form-section phase-section">
+        <h3>Timeline Overview</h3>
+        <canvas id="timelineChart" width="1000" height="400"></canvas>
+        <button id="downloadChart" style="margin-top:15px;">📥 Download Timeline Chart as Image</button>
+        <div id="timelineSummary" style="margin-top: 20px; font-size: 14px;"></div>
+      </div>
+    </div>
+  </form>
+  
+  <div class="container">
+  <div class="form-section phase-section">
+    <h3>📚 Project History</h3>
+    <div id="projectHistoryList">No projects saved yet.</div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+  <script>
+    // Initialize chart variable
+    let timelineChart = null;
+
+    // Function to create/update the timeline chart
+    function createTimelineChart(timelineData) {
+  try {
+    const ctx = document.getElementById('timelineChart');
+    if (!ctx) throw new Error("Canvas element not found");
+
+    if (timelineChart instanceof Chart) {
+      timelineChart.destroy();
+    }
+
+    // Generate a dataset per phase as a horizontal bar using a line segment
+		const colors = ['#007bff', '#17a2b8', '#ffc107', '#28a745', '#fd7e14', '#6f42c1', '#dc3545'];
+
+		const datasets = timelineData.map((phase, i) => ({
+		  label: phase.label,
+		  data: [
+			{ x: phase.start, y: i },
+			{ x: phase.end, y: i }
+		  ],
+		  borderColor: colors[i % colors.length],
+		  backgroundColor: colors[i % colors.length],
+		  borderWidth: 8,
+		  showLine: true,
+		  pointRadius: 0
+		}));
+
+
+    const config = {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            type: 'time',
+            position: 'bottom',
+			time: {
+              unit: 'day',
+              displayFormats: {
+              day: 'MMM d'
+              }
+              },
+            title: { display: true, text: 'Timeline' }
+          },
+          y: {
+            type: 'linear',
+            ticks: {
+              callback: function (value) {
+                return timelineData[value]?.label || '';
+              },
+              stepSize: 1
+            },
+            title: { display: true, text: 'Phases' },
+            min: -1,
+            max: timelineData.length
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const phase = timelineData[ctx.datasetIndex];
+                return `${phase.label}: ${phase.start.toLocaleDateString()} – ${phase.end.toLocaleDateString()} (${Math.round(phase.duration)} days)`;
+              }
+            }
+          }
+        },
+        elements: {
+          line: {
+            tension: 0,
+            borderCapStyle: 'round'
+          }
+        }
+      }
+    };
+
+    timelineChart = new Chart(ctx, config);
+    return true;
+  } catch (error) {
+    console.error("Chart creation failed:", error);
+    return false;
+  }
+}
+
+
+    // Function to validate dates
+    function validateDates(starts, ends) {
+      const errors = [];
+      starts.forEach((start, i) => {
+        if (!(start instanceof Date) || isNaN(start.getTime())) {
+          errors.push(`Phase ${i+1}: Invalid start date`);
+        }
+        if (!(ends[i] instanceof Date) || isNaN(ends[i].getTime())) {
+          errors.push(`Phase ${i+1}: Invalid end date`);
+        }
+        if (start > ends[i]) {
+          errors.push(`Phase ${i+1}: End date cannot be before start date`);
+        }
+      });
+      return errors;
+    }
+
+    // Function to collect phase data
+    function collectPhaseData() {
+      const phases = [
+        'Requirement Gathering',
+        'Connectivity Setup',
+        'EDI Mapping Development',
+        'Internal Testing (QA)',
+        'Customer Testing (UAT)',
+        'Go-Live Preparation',
+        'Go-Live & Hypercare'
+      ];
+
+      return phases.map((phase, i) => {
+        const start = new Date(document.querySelector(`[name=phase_start_${i + 1}]`).value);
+        const end = new Date(document.querySelector(`[name=phase_end_${i + 1}]`).value);
+        const duration = (end - start) / (1000 * 60 * 60 * 24);
+        
+        return {
+          label: phase,
+          start,
+          end,
+          duration: duration > 0 ? duration : 1
+        };
+      });
+    }
+	
+	    // Save project to local storage
+    function saveProjectToHistory(formData) {
+      // Get existing projects or initialize empty array
+      const projectHistory = JSON.parse(localStorage.getItem('projectHistory') || '[]');
+      
+      // Add new project
+      projectHistory.push(formData);
+      
+      // Save back to localStorage
+      localStorage.setItem('projectHistory', JSON.stringify(projectHistory));
+    }
+	function renderProjectHistory() {
+  const container = document.getElementById('projectHistoryList');
+  const history = JSON.parse(localStorage.getItem('projectHistory') || '[]');
+
+  if (history.length === 0) {
+    container.innerHTML = 'No projects saved yet.';
+    return;
+  }
+
+		const html = history.reverse().map(project => `
+		  <div style="border:1px solid #ccc; border-radius:8px; padding:15px; margin-bottom:10px;">
+			<strong>${project.projectTitle}</strong><br>
+			Customer: ${project.customerName}<br>
+			Start: ${project.startDate} | Go-Live: ${project.goLiveDate}<br>
+			Ticket: ${project.ticketNumber} | Channel: ${project.channel}<br>
+			${project.sheetLink ? `<a href="${project.sheetLink}" target="_blank">📄 View Google Sheet</a>` : ''}
+		  </div>
+		`).join('');
+
+
+  container.innerHTML = html;
+}
+
+  // Generate Excel file locally
+
+    function generateExcelFile(formData) {
+      // Create a new workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Prepare project data
+      const projectInfo = [
+        ["Project Title", formData.projectTitle],
+        ["Customer Name", formData.customerName],
+        ["Start Date", formData.startDate],
+        ["Go-Live Date", formData.goLiveDate],
+        ["Contact Email", formData.contactEmail],
+        ["NMB Ticket Number", formData.ticketNumber],
+        ["Communication Channel", formData.channel],
+        ["EDI Document Types", formData.ediDocs]
+      ];
+      
+      // Add project info sheet
+      const wsProject = XLSX.utils.aoa_to_sheet(projectInfo);
+      XLSX.utils.book_append_sheet(wb, wsProject, "Project Info");
+      
+      // Prepare phase data
+      const phaseHeaders = ["Phase", "Start Date", "End Date", "Owner", "Status", "Comment"];
+      const phaseData = [];
+      
+      for (let i = 1; i <= 7; i++) {
+        phaseData.push([
+          document.querySelector(`.phase-row:nth-child(${i}) .phase-title`).textContent.trim(),
+          formData[`phase_start_${i}`],
+          formData[`phase_end_${i}`],
+          formData[`phase_owner_${i}`],
+          formData[`phase_status_${i}`],
+          formData[`phase_comment_${i}`] || ""
+        ]);
+      }
+      
+      // Add phases sheet
+      const wsPhases = XLSX.utils.aoa_to_sheet([phaseHeaders, ...phaseData]);
+      XLSX.utils.book_append_sheet(wb, wsPhases, "Project Phases");
+      
+      // Generate Excel file and download
+      XLSX.writeFile(wb, `EDI_Project_${formData.projectTitle.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
+    }
+
+
+    // Form submission handler
+		document.getElementById('ediForm').addEventListener('submit', function(e) {
+		  e.preventDefault();
+		  
+		  // Collect form data
+		  const formData = new FormData(this);
+		  const data = Object.fromEntries(formData.entries());
+
+		  // Collect phase data
+		  const timelineData = collectPhaseData();
+
+		  // Validate dates
+		  const dateErrors = validateDates(
+			timelineData.map(p => p.start),
+			timelineData.map(p => p.end)
+		  );
+
+		  if (dateErrors.length > 0) {
+			alert("Please fix these date issues:\n" + dateErrors.join("\n"));
+			return;
+		  }
+
+		  // Create the chart
+		  if (!createTimelineChart(timelineData)) {
+			document.getElementById('result').innerHTML = `
+			  <p style="color:red">❌ Failed to create timeline chart</p>
+			`;
+			return;
+		  }
+
+		  // Generate summary table
+		  const summaryDiv = document.getElementById('timelineSummary');
+		  summaryDiv.innerHTML = generateSummaryTable(timelineData);
+
+		  // ✅ Send to Google Apps Script (remove 'no-cors')
+		  fetch("https://script.google.com/macros/s/AKfycbxmM_taae0pIVFdqObxw_djjoCRsjNH05V-O8fqeaOAT6yS2t-KbR_DZyivTNdsq6U/exec", {
+			method: "POST",
+			headers: {
+			  "Content-Type": "application/json"
+			},
+			body: JSON.stringify(data)
+		  })
+		  .then(response => response.json())
+		  .then(result => {
+			data.sheetLink = result.sheetUrl;
+			saveProjectToHistory(data);
+			renderProjectHistory();
+			document.getElementById('result').innerHTML = `
+			  <p style="color:green">✔ Google Sheet created! <a href="${result.sheetUrl}" target="_blank">📄 View Sheet</a></p>
+			`;
+		  })
+		  .catch(error => {
+			console.error("Google Sheet creation failed:", error);
+			// Fallback - generate Excel locally
+			generateExcelFile(data);
+			document.getElementById('result').innerHTML = `
+			  <p style="color:orange">⚠ Could not create Google Sheet. Local Excel file generated instead.</p>
+			`;
+		  });
+
+		  renderProjectHistory();
+		  document.getElementById('ediForm').reset();
+		});
+
+
+    // Generate summary table
+    function generateSummaryTable(timelineData) {
+      let tableHTML = `
+        <table style='width:100%; border-collapse: collapse; margin-top: 20px;'>
+          <thead>
+            <tr style='background:#004080;color:white;'>
+              <th style='padding:8px;border:1px solid #ccc;'>Phase</th>
+              <th style='padding:8px;border:1px solid #ccc;'>Start Date</th>
+              <th style='padding:8px;border:1px solid #ccc;'>End Date</th>
+              <th style='padding:8px;border:1px solid #ccc;'>Duration</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+      timelineData.forEach(d => {
+        tableHTML += `
+          <tr>
+            <td style='padding:8px;border:1px solid #ccc;'>${d.label}</td>
+            <td style='padding:8px;border:1px solid #ccc;'>${d.start.toLocaleDateString()}</td>
+            <td style='padding:8px;border:1px solid #ccc;'>${d.end.toLocaleDateString()}</td>
+            <td style='padding:8px;border:1px solid #ccc;'>${Math.round(d.duration)} days</td>
+          </tr>`;
+      });
+
+      tableHTML += '</tbody></table>';
+      return tableHTML;
+    }
+
+    // Download chart as image
+		document.getElementById('downloadChart').addEventListener('click', function () {
+		  if (!timelineChart) {
+			alert("Please generate the chart first");
+			return;
+		  }
+
+		  const canvas = document.getElementById('timelineChart');
+		  const tempCanvas = document.createElement('canvas');
+		  tempCanvas.width = canvas.width;
+		  tempCanvas.height = canvas.height;
+		  const tempCtx = tempCanvas.getContext('2d');
+
+		  tempCtx.fillStyle = "#ffffff";
+		  tempCtx.fillRect(0, 0, canvas.width, canvas.height);
+		  tempCtx.drawImage(canvas, 0, 0);
+
+		  const link = document.createElement('a');
+		  link.download = 'edi_timeline.png';
+		  link.href = tempCanvas.toDataURL('image/png');
+		  link.click();
+		});
+
+
+    // Apply dynamic styling for status and owner fields
+    function applyDynamicStyling() {
+      document.querySelectorAll('select[name^="phase_status_"]').forEach(select => {
+        const updateStatusColor = () => {
+          select.className = 'status-select status-' + select.value.replace(/ /g, '');
+        };
+        select.addEventListener('change', updateStatusColor);
+        updateStatusColor();
+      });
+
+      document.querySelectorAll('select[name^="phase_owner_"]').forEach(select => {
+        const updateOwnerColor = () => {
+          select.className = 'owner-' + select.value.replace(/ /g, '');
+        };
+        select.addEventListener('change', updateOwnerColor);
+        updateOwnerColor();
+      });
+    }
+
+	// Initialize on load
+	document.addEventListener('DOMContentLoaded', function() {
+	  applyDynamicStyling();
+	  
+	  renderProjectHistory();
+
+	  
+	  // Set default dates
+	  const today = new Date().toISOString().split('T')[0];
+	  const startDateInput = document.querySelector('input[name="startDate"]');
+	  if (startDateInput) {
+		startDateInput.value = today;
+	  }
+	  
+	  // Set go-live date to 30 days from now
+	  const futureDate = new Date();
+	  futureDate.setDate(futureDate.getDate() + 30);
+	  const goLiveDateInput = document.querySelector('input[name="goLiveDate"]');
+	  if (goLiveDateInput) {
+		goLiveDateInput.value = futureDate.toISOString().split('T')[0];
+	  }
+	  
+	  // Set phase dates
+	  for (let i = 1; i <= 7; i++) {
+		const startDate = new Date();
+		startDate.setDate(startDate.getDate() + (i-1)*4);
+		const endDate = new Date(startDate);
+		endDate.setDate(endDate.getDate() + 3);
+		
+		const phaseStartInput = document.querySelector(`input[name="phase_start_${i}"]`);
+		const phaseEndInput = document.querySelector(`input[name="phase_end_${i}"]`);
+		
+		if (phaseStartInput && phaseEndInput) {
+		  phaseStartInput.value = startDate.toISOString().split('T')[0];
+		  phaseEndInput.value = endDate.toISOString().split('T')[0];
+		}
+	  }
+	});
+  </script>
+</body>
+</html>

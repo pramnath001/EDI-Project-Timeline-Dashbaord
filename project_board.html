@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project Task Board</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #f2f4f7;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      color: #004080;
+      margin-bottom: 20px;
+    }
+    .create-task {
+      max-width: 100%;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 40px;
+    }
+    .create-task h3 {
+      margin-top: 0;
+      color: #004080;
+      margin-bottom: 15px;
+    }
+    .create-task input, .create-task textarea, .create-task select {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .create-task button {
+      padding: 12px;
+      background: #004080;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    .create-task button:hover {
+      background: #0066cc;
+    }
+    .board {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding-bottom: 20px;
+      min-height: 300px;
+    }
+    .column {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      width: 250px;
+      flex-shrink: 0;
+      min-height: 400px;
+    }
+    .column h3 {
+      text-align: center;
+      background: #004080;
+      color: white;
+      padding: 10px;
+      margin: -10px -10px 10px;
+      border-radius: 8px 8px 0 0;
+      font-size: 16px;
+    }
+    .task-list {
+      min-height: 300px;
+    }
+    .card {
+      background: #e9f5ff;
+      border-left: 4px solid #007bff;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: grab;
+      font-size: 13px;
+    }
+    .card.dragging {
+      opacity: 0.5;
+      background: #d1e7ff;
+    }
+    .card p {
+      margin: 6px 0;
+      line-height: 1.4;
+    }
+    .card-actions {
+      text-align: right;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+    .card-actions span {
+      font-size: 11px;
+      color: #007bff;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.7);
+    }
+    .card-actions span:hover {
+      background: rgba(0,0,0,0.05);
+    }
+    .filters {
+      margin: 20px 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .filters label {
+      font-weight: bold;
+      margin-bottom: 6px;
+      display: block;
+      font-size: 13px;
+      color: #555;
+    }
+    .filters select, .filters input {
+      padding: 8px 10px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    table.task-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    table.task-table th, table.task-table td {
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      text-align: left;
+      font-size: 13px;
+    }
+    table.task-table th {
+      background: #004080;
+      color: white;
+      font-weight: 500;
+    }
+    table.task-table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    #taskModal input,
+    #taskModal select,
+    #taskModal textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    .form-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .form-row label {
+      width: 150px;
+      font-weight: bold;
+      font-size: 14px;
+      color: #333;
+    }
+    .form-row input,
+    .form-row select,
+    .form-row textarea {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #004080;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h2>Project Task Board</h2>
+  <div class="create-task">
+    <h3>Create New Task</h3>
+    <div class="form-row">
+      <label for="taskTitle">Task Title</label>
+      <input type="text" id="taskTitle" placeholder="Enter task title" required>
+    </div>
+    <div class="form-row">
+      <label for="assignee">Assignee</label>
+      <input type="text" id="assignee" placeholder="Enter assignee name" required>
+    </div>
+    <div class="form-row">
+      <label for="ticketNumber">Ticket Number</label>
+      <input type="text" id="ticketNumber" placeholder="Optional">
+    </div>
+    <div class="form-row">
+      <label for="priority">Priority</label>
+      <select id="priority">
+        <option value="">Select Priority</option>
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="status">Status</label>
+      <select id="status">
+        <option>Open</option>
+        <option>In Progress</option>
+        <option>Pending</option>
+        <option>Follow up Required</option>
+        <option>Closed</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="comment">Comment</label>
+      <textarea id="comment" placeholder="Enter notes..." rows="3"></textarea>
+    </div>
+    <div style="text-align: right; margin-top: 20px;">
+      <button onclick="addTask()">Add Task</button>
+    </div>
+  </div>
+
+  <div class="board" id="kanbanBoard"></div>
+
+  <h3 style="margin-top: 40px; color:#004080">All Tasks</h3>
+  <div class="filters">
+    <div><label>Status</label>
+      <select id="filterStatus" onchange="filterTasks()">
+        <option value="">All Statuses</option>
+        <option>Open</option>
+        <option>In Progress</option>
+        <option>Pending</option>
+        <option>Follow up Required</option>
+        <option>Closed</option>
+      </select>
+    </div>
+    <div><label>Assignee</label>
+      <input type="text" id="filterAssignee" placeholder="Enter assignee" oninput="filterTasks()">
+    </div>
+    <div><label>Task Title</label>
+      <input type="text" id="filterTitle" placeholder="Enter title" oninput="filterTasks()">
+    </div>
+    <div><label>Project Title</label>
+      <input type="text" id="filterProject" placeholder="Enter project" oninput="filterTasks()">
+    </div>
+    <div><label>Date From</label>
+      <input type="date" id="filterDateFrom" onchange="filterTasks()">
+    </div>
+    <div><label>Date To</label>
+      <input type="date" id="filterDateTo" onchange="filterTasks()">
+    </div>
+    <div><label>Priority</label>
+      <select id="filterPriority" onchange="filterTasks()">
+        <option value="">All</option>
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+      </select>
+    </div>
+    <div style="grid-column: 1 / -1; text-align: right;">
+      <button onclick="clearFilters()" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px;">Clear Filters</button>
+    </div>
+  </div>
+
+  <table class="task-table">
+    <thead>
+      <tr>
+        <th>Reference ID</th>
+        <th>Title</th>
+        <th>Assignee</th>
+        <th>Ticket</th>
+        <th>Status</th>
+        <th>Priority</th>
+        <th>Comment</th>
+      </tr>
+    </thead>
+    <tbody id="taskTableBody"></tbody>
+  </table>
+  <div id="pagination" style="margin-top: 10px; text-align: center;"></div>
+
+  <div id="taskModal" role="dialog" aria-labelledby="modalTitle" aria-modal="true" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); background:white; padding:20px 25px; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.2); z-index:1000; width:420px; max-width:90%;">
+    <h2 id="modalTitle" style="margin-top: 0; color:#004080;">Task Details</h2>
+    <div id="modalViewSection">
+      <p><strong>Title:</strong> <span id="viewTitle"></span></p>
+      <p><strong>Assignee:</strong> <span id="viewAssignee"></span></p>
+      <p><strong>Ticket:</strong> <span id="viewTicket"></span></p>
+      <p><strong>Status:</strong> <span id="viewStatus"></span></p>
+      <p><strong>Priority:</strong> <span id="viewPriority"></span></p>
+      <p><strong>Comment:</strong><br><span id="viewComment"></span></p>
+    </div>
+    <div id="modalEditSection" style="display: none;">
+      <h3 style="margin-top: 0; color:#004080;">Edit Task</h3>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <label for="modalTitle" style="font-weight: bold;">Task Title</label>
+          <input type="text" id="modalTitle" placeholder="Enter task title" required>
+        </div>
+        <div>
+          <label for="modalAssignee" style="font-weight: bold;">Assignee</label>
+          <input type="text" id="modalAssignee" placeholder="Enter assignee name" required>
+        </div>
+        <div>
+          <label for="modalTicket" style="font-weight: bold;">Ticket Number</label>
+          <input type="text" id="modalTicket" placeholder="Enter ticket number">
+        </div>
+        <div>
+          <label for="modalPriority" style="font-weight: bold;">Priority</label>
+          <select id="modalPriority">
+            <option value="">Select Priority</option>
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+        <div>
+          <label for="modalStatus" style="font-weight: bold;">Status</label>
+          <select id="modalStatus">
+            <option>Open</option>
+            <option>In Progress</option>
+            <option>Pending</option>
+            <option>Follow up Required</option>
+            <option>Closed</option>
+          </select>
+        </div>
+        <div>
+          <label for="modalComment" style="font-weight: bold;">Comment / Notes</label>
+          <textarea id="modalComment" rows="3" placeholder="Enter comment here"></textarea>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 20px; display:flex; justify-content: space-between;">
+      <button onclick="toggleEdit(true)" style="padding: 10px 16px; background:#004080; color:white; border:none; border-radius:6px;">✏️ Edit</button>
+      <button onclick="confirmDelete()" style="padding: 10px 16px; background:#c82333; color:white; border:none; border-radius:6px;">🗑 Delete</button>
+      <button onclick="closeModal()" style="padding: 10px 16px; background:#6c757d; color:white; border:none; border-radius:6px;">❌ Close</button>
+    </div>
+    <div id="saveEditControls" style="margin-top:15px; display:none; text-align:right;">
+      <button onclick="saveModalTask()" style="padding: 10px 16px; background:#28a745; color:white; border:none; border-radius:6px;">💾 Save Changes</button>
+    </div>
+  </div>
+
+  <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    const statuses = ["Open", "In Progress", "Pending", "Follow up Required", "Closed"];
+    const board = document.getElementById('kanbanBoard');
+    let tasks = [];
+    let draggedItem = null;
+    let currentEditIndex = null;
+    let currentPage = 1;
+    const itemsPerPage = 20;
+
+    function loadTasks() {
+      showLoading();
+      try {
+        const storedTasks = localStorage.getItem('kanbanTasks');
+        tasks = storedTasks ? JSON.parse(storedTasks) : [];
+      } catch (e) {
+        console.error("Failed to load tasks:", e);
+        tasks = [];
+        alert("Error loading tasks. Starting with empty task list.");
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function saveTasks() {
+      showLoading();
+      try {
+        localStorage.setItem('kanbanTasks', JSON.stringify(tasks));
+      } catch (e) {
+        console.error("Failed to save tasks:", e);
+        alert("Failed to save tasks. Your browser storage might be full.");
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function showLoading() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+    }
+
+    function createColumns() {
+      board.innerHTML = '';
+      statuses.forEach(status => {
+        const col = document.createElement('div');
+        col.className = 'column';
+        col.setAttribute('data-status', status);
+        col.innerHTML = `<h3>${status}</h3><div class="task-list" data-status="${status}" ondrop="drop(event)" ondragover="allowDrop(event)"></div>`;
+        board.appendChild(col);
+      });
+    }
+
+    function getPriorityColor(priority) {
+      switch(priority) {
+        case 'High': return '#f8d7da';
+        case 'Medium': return '#fff3cd';
+        case 'Low': return '#d4edda';
+        default: return '#e9f5ff';
+      }
+    }
+
+    function renderBoard() {
+      document.querySelectorAll('.task-list').forEach(list => list.innerHTML = '');
+      const today = new Date();
+
+      tasks.forEach((task, index) => {
+        const createdDate = new Date(task.created);
+        const ageInDays = Math.floor((today - createdDate) / (1000 * 60 * 60 * 24));
+        if (task.status === 'Closed' && ageInDays > 7) return;
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.draggable = true;
+        card.dataset.index = index;
+        card.dataset.status = task.status;
+        card.ondragstart = drag;
+        card.ondragend = dragEnd;
+        card.style.background = getPriorityColor(task.priority);
+        card.innerHTML = `
+          <strong>${task.id}</strong>
+          <p><strong>${task.title}</strong></p>
+          <p>👤 ${task.assignee}</p>
+          <p>🎫 ${task.ticket || 'No Ticket'}</p>
+          <p>🔺 ${task.priority || '-'}</p>
+          <p>📝 ${task.comment}</p>
+          <div class="card-actions">
+            <span onclick="viewTask(${index})">👁 View</span>
+            <span onclick="deleteTask(${index})">🗑 Delete</span>
+          </div>
+        `;
+
+        const col = document.querySelector(`.task-list[data-status="${task.status}"]`);
+        if (col) col.appendChild(card);
+      });
+
+      renderPaginatedTable();
+    }
+
+    function allowDrop(ev) {
+      ev.preventDefault();
+    }
+
+    function drag(ev) {
+      draggedItem = ev.target;
+      ev.target.classList.add('dragging');
+      ev.dataTransfer.setData("text/plain", ev.target.dataset.index);
+    }
+
+    function dragEnd(ev) {
+      ev.target.classList.remove('dragging');
+    }
+
+    function drop(ev) {
+      ev.preventDefault();
+      const targetList = ev.target.closest('.task-list');
+      if (!targetList) return;
+      
+      const newStatus = targetList.dataset.status;
+      const taskIndex = ev.dataTransfer.getData("text/plain");
+      
+      if (tasks[taskIndex].status !== newStatus) {
+        tasks[taskIndex].status = newStatus;
+        saveTasks();
+        renderBoard();
+      }
+    }
+
+    function generateTaskId() {
+      const today = new Date();
+      const dateStr = today.toLocaleDateString('en-GB').replace(/\//g, '');
+      const count = tasks.filter(t => t.id.includes(dateStr)).length + 1;
+      return `EDI-TASK-${dateStr}-${String(count).padStart(3, '0')}`;
+    }
+
+    function addTask() {
+      const title = document.getElementById('taskTitle').value.trim();
+      const assignee = document.getElementById('assignee').value.trim();
+      const ticket = document.getElementById('ticketNumber').value.trim();
+      const status = document.getElementById('status').value;
+      const comment = document.getElementById('comment').value.trim();
+      const priority = document.getElementById('priority').value;
+
+      if (!title) {
+        alert('Task title is required');
+        document.getElementById('taskTitle').focus();
+        return;
+      }
+
+      if (!assignee) {
+        alert('Assignee is required');
+        document.getElementById('assignee').focus();
+        return;
+      }
+
+      const task = {
+        id: generateTaskId(),
+        title,
+        assignee,
+        ticket,
+        status,
+        priority,
+        comment,
+        created: new Date().toISOString()
+      };
+
+      tasks.push(task);
+      saveTasks();
+      renderBoard();
+
+      // Reset form
+      document.getElementById('taskTitle').value = '';
+      document.getElementById('assignee').value = '';
+      document.getElementById('ticketNumber').value = '';
+      document.getElementById('status').value = 'Open';
+      document.getElementById('priority').value = '';
+      document.getElementById('comment').value = '';
+    }
+
+    function deleteTask(index) {
+      if (confirm('Are you sure you want to delete this task?')) {
+        tasks.splice(index, 1);
+        saveTasks();
+        renderBoard();
+      }
+    }
+
+    function viewTask(index) {
+      const task = tasks[index];
+      currentEditIndex = index;
+
+      // Show view content
+      document.getElementById('viewTitle').innerText = task.title;
+      document.getElementById('viewAssignee').innerText = task.assignee;
+      document.getElementById('viewTicket').innerText = task.ticket || '-';
+      document.getElementById('viewStatus').innerText = task.status;
+      document.getElementById('viewPriority').innerText = task.priority || '-';
+      document.getElementById('viewComment').innerText = task.comment || '';
+
+      // Fill edit inputs
+      document.getElementById('modalTitle').value = task.title;
+      document.getElementById('modalAssignee').value = task.assignee;
+      document.getElementById('modalTicket').value = task.ticket;
+      document.getElementById('modalStatus').value = task.status;
+      document.getElementById('modalPriority').value = task.priority;
+      document.getElementById('modalComment').value = task.comment;
+
+      toggleEdit(false);
+      document.getElementById('taskModal').style.display = 'block';
+      document.getElementById('taskModal').focus();
+    }
+
+    function toggleEdit(enableEdit) {
+      document.getElementById('modalViewSection').style.display = enableEdit ? 'none' : 'block';
+      document.getElementById('modalEditSection').style.display = enableEdit ? 'block' : 'none';
+      document.getElementById('saveEditControls').style.display = enableEdit ? 'block' : 'none';
+    }
+
+    function saveModalTask() {
+      if (currentEditIndex === null) return;
+
+      if (!confirm('Are you sure you want to save these changes?')) {
+        return;
+      }
+
+      const title = document.getElementById('modalTitle').value.trim();
+      const assignee = document.getElementById('modalAssignee').value.trim();
+
+      if (!title || !assignee) {
+        alert('Title and Assignee are required');
+        return;
+      }
+
+      tasks[currentEditIndex] = {
+        ...tasks[currentEditIndex],
+        title,
+        assignee,
+        ticket: document.getElementById('modalTicket').value.trim(),
+        status: document.getElementById('modalStatus').value,
+        priority: document.getElementById('modalPriority').value,
+        comment: document.getElementById('modalComment').value.trim()
+      };
+
+      saveTasks();
+      renderBoard();
+      closeModal();
+    }
+
+    function confirmDelete() {
+      if (confirm("Are you sure you want to delete this task?")) {
+        tasks.splice(currentEditIndex, 1);
+        saveTasks();
+        renderBoard();
+        closeModal();
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('taskModal').style.display = 'none';
+      currentEditIndex = null;
+      document.querySelector('button').focus();
+    }
+
+    function filterPass(task) {
+      const statusFilter = document.getElementById('filterStatus').value;
+      const assigneeFilter = document.getElementById('filterAssignee').value.toLowerCase();
+      const titleFilter = document.getElementById('filterTitle').value.toLowerCase();
+      const projectFilter = document.getElementById('filterProject').value.toLowerCase();
+      const dateFrom = document.getElementById('filterDateFrom').value;
+      const dateTo = document.getElementById('filterDateTo').value;
+      const priorityFilter = document.getElementById('filterPriority').value;
+
+      const createdDate = new Date(task.created).toISOString().split('T')[0];
+
+      return (!statusFilter || task.status === statusFilter)
+        && (!assigneeFilter || task.assignee.toLowerCase().includes(assigneeFilter))
+        && (!titleFilter || task.title.toLowerCase().includes(titleFilter))
+        && (!projectFilter || (task.comment && task.comment.toLowerCase().includes(projectFilter)))
+        && (!priorityFilter || task.priority === priorityFilter)
+        && (!dateFrom || createdDate >= dateFrom)
+        && (!dateTo || createdDate <= dateTo);
+    }
+
+    function filterTasks() {
+      currentPage = 1;
+      renderPaginatedTable();
+    }
+
+    function clearFilters() {
+      document.getElementById('filterStatus').value = '';
+      document.getElementById('filterAssignee').value = '';
+      document.getElementById('filterTitle').value = '';
+      document.getElementById('filterProject').value = '';
+      document.getElementById('filterDateFrom').value = '';
+      document.getElementById('filterDateTo').value = '';
+      document.getElementById('filterPriority').value = '';
+      filterTasks();
+    }
+
+    function renderPaginatedTable() {
+      const filteredTasks = tasks.filter(filterPass);
+      const tableBody = document.getElementById('taskTableBody');
+      tableBody.innerHTML = '';
+
+      const start = (currentPage - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      const paginatedItems = filteredTasks.slice(start, end);
+
+      paginatedItems.forEach(task => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${task.id}</td>
+          <td>${task.title}</td>
+          <td>${task.assignee}</td>
+          <td>${task.ticket || '-'}</td>
+          <td>${task.status}</td>
+          <td>${task.priority || '-'}</td>
+          <td>${task.comment}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+
+      renderPaginationControls(filteredTasks.length);
+    }
+
+    function renderPaginationControls(totalItems) {
+      const totalPages = Math.ceil(totalItems / itemsPerPage);
+      const paginationDiv = document.getElementById('pagination');
+      paginationDiv.innerHTML = '';
+
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.style.margin = '0 4px';
+        btn.style.padding = '6px 12px';
+        btn.style.border = i === currentPage ? '2px solid #004080' : '1px solid #ccc';
+        btn.style.background = i === currentPage ? '#004080' : '#f9f9f9';
+        btn.style.color = i === currentPage ? 'white' : 'black';
+        btn.style.borderRadius = '5px';
+        btn.onclick = () => {
+          currentPage = i;
+          renderPaginatedTable();
+        };
+        paginationDiv.appendChild(btn);
+      }
+    }
+
+    // Initialize the application
+    loadTasks();
+    createColumns();
+    renderBoard();
+  </script>
+</body>
+</html>
