@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>EDI Project Plan Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-   <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
   <style>
     .phase-row {
       display: grid;
@@ -299,9 +298,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
 
  <script>
   // Initialize chart variable
+  document.addEventListener('DOMContentLoaded', function () {
   let timelineChart = null;
 
   // ... [UNCHANGED createTimelineChart, validateDates, collectPhaseData, generateExcelFile etc.]
@@ -645,6 +646,7 @@ function generateExcelFile(formData) {
 		  endInput.value = end.toISOString().split('T')[0];
 		}
 	  }
+	  });
 
 </script>
 </body>
