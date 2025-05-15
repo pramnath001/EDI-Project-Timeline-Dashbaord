@@ -88,6 +88,7 @@
 		try {
 		  const response = await fetch('https://script.google.com/macros/s/AKfycbynyVZcVRmC1RxwPiiYYIK8yPUWKNwV07gA6eZwDOQw0lHRBSPUKZ0_H7OYOFQXLnAl/exec');
 		  const result = await response.json();
+		  if (!Array.isArray(result)) throw new Error("Response is not an array");
 		  projectData = result;
 		  originalData = [...projectData];
 		  renderTable(projectData);
@@ -106,6 +107,9 @@
 		const paginatedData = data.slice(start, end);
 
 		paginatedData.forEach((item, i) => {
+		const sheetUrl = item.sheetUrl || "#";
+        const downloadUrl = sheetUrl.includes("/edit") ? sheetUrl.replace("/edit", "/export?format=xlsx") : sheetUrl;
+  
 		  const row = `
 			<tr>
 			  <td><a href="${item.sheetUrl || '#'}" target="_blank">${item.projectTitle}</a></td>
