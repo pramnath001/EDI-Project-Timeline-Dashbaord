@@ -77,54 +77,125 @@
     </tbody>
   </table>
 
-  <script>
-    const projectData = JSON.parse(localStorage.getItem('projectHistory') || '[]');
+<script>
+	  let projectData = [];
+	  let originalData = [];
+	  let currentPage = 1;
+	  const rowsPerPage = 20;
 
-    function renderTable(data) {
-      const tbody = document.getElementById('historyBody');
-      tbody.innerHTML = '';
-      data.forEach((item, i) => {
-        const row = `
-          <tr>
-            <td>${item.projectTitle}</td>
-            <td>${item.customerName}</td>
-            <td>${item.channel}</td>
-            <td>${item.ediDocs}</td>
-            <td>${item.startDate}</td>
-            <td>${item.goLiveDate}</td>
-            <td><button class="view-btn" onclick='viewDetails(${i})'>View</button></td>
-          </tr>
-        `;
-        tbody.innerHTML += row;
-      });
-    }
+	  async function fetchProjectHistory() {
+		try {
+		  const response = await fetch('https://script.google.com/macros/s/AKfycbynyVZcVRmC1RxwPiiYYIK8yPUWKNwV07gA6eZwDOQw0lHRBSPUKZ0_H7OYOFQXLnAl/exec');
+		  const result = await response.json();
+		  projectData = result;
+		  originalData = [...projectData];
+		  renderTable(projectData);
+		} catch (error) {
+		  alert("❌ Failed to load project history from Google Sheet.");
+		  console.error(error);
+		}
+	  }
 
-    function applyFilter() {
-      const type = document.getElementById('filterType').value;
-      const keyword = document.getElementById('filterInput').value.toLowerCase();
-      const filtered = projectData.filter(p => p[type].toLowerCase().includes(keyword));
-      renderTable(filtered);
-    }
+	  function renderTable(data) {
+		const tbody = document.getElementById('historyBody');
+		tbody.innerHTML = '';
 
-    function viewDetails(index) {
-      const data = projectData[index];
-      alert(`Project: ${data.projectTitle}\nCustomer: ${data.customerName}\nEDI Docs: ${data.ediDocs}`);
-    }
+		const start = (currentPage - 1) * rowsPerPage;
+		const end = start + rowsPerPage;
+		const paginatedData = data.slice(start, end);
 
-    function exportCSV() {
-      const headers = ['Project Title','Customer','Channel','EDI Docs','Start Date','Go-Live Date'];
-      const rows = projectData.map(p => [p.projectTitle, p.customerName, p.channel, p.ediDocs, p.startDate, p.goLiveDate]);
-      let csv = headers.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'project_history.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+		paginatedData.forEach((item, i) => {
+		  const row = `
+			<tr>
+			  <td><a href="${item.sheetUrl || '#'}" target="_blank">${item.projectTitle}</a></td>
+			  <td>${item.customerName}</td>
+			  <td>${item.channel}</td>
+			  <td>${item.ediDocs}</td>
+			  <td>${item.startDate}</td>
+			  <td>${item.goLiveDate}</td>
+			  <td><button class="view-btn" onclick='viewDetails(${start + i})'>View</button></td>
+			</tr>
+		  `;
+		  tbody.innerHTML += row;
+		});
 
-    renderTable(projectData);
-  </script>
+		renderPagination(data.length);
+	  }
+
+	  function renderPagination(totalItems) {
+		const containerId = "paginationContainer";
+		let pagination = document.getElementById(containerId);
+
+		if (!pagination) {
+		  pagination = document.createElement("div");
+		  pagination.id = containerId;
+		  pagination.style.marginTop = "20px";
+		  pagination.style.textAlign = "center";
+		  document.body.appendChild(pagination);
+		}
+
+		pagination.innerHTML = '';
+		const totalPages = Math.ceil(totalItems / rowsPerPage);
+
+		for (let i = 1; i <= totalPages; i++) {
+		  const btn = document.createElement("button");
+		  btn.textContent = i;
+		  btn.style.margin = "0 5px";
+		  btn.style.padding = "5px 10px";
+		  btn.style.background = i === currentPage ? "#004080" : "#ccc";
+		  btn.style.color = i === currentPage ? "#fff" : "#000";
+		  btn.style.border = "none";
+		  btn.style.borderRadius = "4px";
+		  btn.style.cursor = "pointer";
+
+		  btn.addEventListener("click", () => {
+			currentPage = i;
+			renderTable(projectData);
+		  });
+
+		  pagination.appendChild(btn);
+		}
+	  }
+
+	  function applyFilter() {
+		const type = document.getElementById('filterType').value;
+		const keyword = document.getElementById('filterInput').value.toLowerCase();
+		const filtered = originalData.filter(p => p[type]?.toLowerCase().includes(keyword));
+		currentPage = 1;
+		projectData = filtered;
+		renderTable(projectData);
+	  }
+
+	  function viewDetails(index) {
+		const data = projectData[index] || {};
+		alert(`Project: ${data.projectTitle}\nCustomer: ${data.customerName}\nEDI Docs: ${data.ediDocs}`);
+	  }
+
+	  function exportCSV() {
+		const headers = ['Project Title', 'Customer', 'Channel', 'EDI Docs', 'Start Date', 'Go-Live Date', 'Sheet URL'];
+		const rows = projectData.map(p => [
+		  p.projectTitle,
+		  p.customerName,
+		  p.channel,
+		  p.ediDocs,
+		  p.startDate,
+		  p.goLiveDate,
+		  p.sheetUrl || ''
+		]);
+
+		let csv = headers.join(',') + '\n' + rows.map(r => r.map(field => `"${field}"`).join(',')).join('\n');
+		const blob = new Blob([csv], { type: 'text/csv' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'project_history.csv';
+		a.click();
+		URL.revokeObjectURL(url);
+	  }
+
+	  // Load on page start
+	  fetchProjectHistory();
+</script>
+<div id="paginationContainer"></div>
 </body>
 </html>
