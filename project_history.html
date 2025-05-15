@@ -90,7 +90,7 @@
   async function fetchCombinedProjectHistory() {
     try {
       // 1. Get data from localStorage
-      const localProjects = JSON.parse(localStorage.getItem('projectHistory') || [];
+      const localProjects = JSON.parse(localStorage.getItem('projectHistory') || '[]');
       
       // 2. Get data from Google Sheets
       const response = await fetch('https://script.google.com/macros/s/AKfycbynyVZcVRmC1RxwPiiYYIK8yPUWKNwV07gA6eZwDOQw0lHRBSPUKZ0_H7OYOFQXLnAl/exec');
@@ -128,7 +128,7 @@
     } catch (err) {
       console.error("Error loading project history:", err);
       // Fallback to localStorage if API fails
-      const localProjects = JSON.parse(localStorage.getItem('projectHistory') || [];
+      const localProjects = JSON.parse(localStorage.getItem('projectHistory') || '[]');
       projectData = localProjects;
       originalData = [...localProjects];
       renderTable(projectData);
