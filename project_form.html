@@ -385,14 +385,15 @@ function createTimelineChart(phaseData) {
       type: 'bar',
       data: {
         labels: labels,
-        datasets: [{
-          label: 'Project Timeline',
-          data: durations,
-          backgroundColor: backgroundColors,
-          borderColor: backgroundColors.map(c => Chart.helpers.color(c).darken(0.2).rgbString()),
-          borderWidth: 1,
-          barPercentage: 0.6
-        }]
+		datasets: [{
+		  label: 'Project Timeline',
+		  data: durations,
+		  backgroundColor: backgroundColors,
+		  borderColor: backgroundColors, // simple and works
+		  borderWidth: 1,
+		  barPercentage: 0.6
+		}]
+
       },
       options: {
         indexAxis: 'y',
