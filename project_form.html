@@ -368,18 +368,21 @@ function createTimelineChart(phaseData) {
     }
     
     // Prepare chart data
-    const labels = phaseData.map(p => p.label);
-    const startDates = phaseData.map(p => p.start);
-    const durations = phaseData.map(p => p.duration);
-    const backgroundColors = phaseData.map(p => {
-      switch(p.status) {
-        case 'In Progress': return '#007bff';
-        case 'Pending': return '#ffc107';
-        case 'Follow up Required': return '#dc3545';
-        case 'Closed': return '#28a745';
-        default: return '#6c757d';
-      }
-    });
+		const backgroundColors = {
+		  'In Progress': '#007bff',
+		  'Pending': '#ffc107',
+		  'Follow up Required': '#dc3545',
+		  'Closed': '#28a745',
+		  'Open': '#6c757d'
+		};
+
+		const chartData = phaseData.map(p => ({
+		  x: p.start,
+		  x2: p.end,
+		  y: p.label,
+		  backgroundColor: backgroundColors[p.status] || '#6c757d'
+		}));
+
     
     timelineChart = new Chart(ctx, {
       type: 'bar',
@@ -387,13 +390,13 @@ function createTimelineChart(phaseData) {
         labels: labels,
 		datasets: [{
 		  label: 'Project Timeline',
-		  data: durations,
-		  backgroundColor: backgroundColors,
-		  borderColor: backgroundColors, // simple and works
+		  data: chartData,
+		  parsing: { xAxisKey: 'x', x2AxisKey: 'x2', yAxisKey: 'y' },
+		  backgroundColor: chartData.map(p => p.backgroundColor),
+		  borderColor: chartData.map(p => p.backgroundColor),
 		  borderWidth: 1,
-		  barPercentage: 0.6
+		  barPercentage: 0.8
 		}]
-
       },
       options: {
         indexAxis: 'y',
