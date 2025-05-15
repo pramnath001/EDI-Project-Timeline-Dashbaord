@@ -439,37 +439,35 @@
     });
   }
 
-  // Init on load
-  document.addEventListener('DOMContentLoaded', function () {
-    applyDynamicStyling();
+	  // Init on load
+	  document.addEventListener('DOMContentLoaded', function () {
+		applyDynamicStyling();
 
-    // ⛔ Removed renderProjectHistory(); from here
+		// Set default dates
+		const today = new Date().toISOString().split('T')[0];
+		const startDateInput = document.querySelector('input[name="startDate"]');
+		if (startDateInput) startDateInput.value = today;
 
-    // Set default dates
-    const today = new Date().toISOString().split('T')[0];
-    const startDateInput = document.querySelector('input[name="startDate"]');
-    if (startDateInput) startDateInput.value = today;
+		const futureDate = new Date();
+		futureDate.setDate(futureDate.getDate() + 30);
+		const goLiveDateInput = document.querySelector('input[name="goLiveDate"]');
+		if (goLiveDateInput) goLiveDateInput.value = futureDate.toISOString().split('T')[0];
 
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 30);
-    const goLiveDateInput = document.querySelector('input[name="goLiveDate"]');
-    if (goLiveDateInput) goLiveDateInput.value = futureDate.toISOString().split('T')[0];
+		for (let i = 1; i <= 7; i++) {
+		  const startDate = new Date();
+		  startDate.setDate(startDate.getDate() + (i - 1) * 4);
+		  const endDate = new Date(startDate);
+		  endDate.setDate(endDate.getDate() + 3);
 
-    for (let i = 1; i <= 7; i++) {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() + (i - 1) * 4);
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 3);
+		  const phaseStartInput = document.querySelector(`input[name="phase_start_${i}"]`);
+		  const phaseEndInput = document.querySelector(`input[name="phase_end_${i}"]`);
 
-      const phaseStartInput = document.querySelector(`input[name="phase_start_${i}"]`);
-      const phaseEndInput = document.querySelector(`input[name="phase_end_${i}"]`);
-
-      if (phaseStartInput && phaseEndInput) {
-        phaseStartInput.value = startDate.toISOString().split('T')[0];
-        phaseEndInput.value = endDate.toISOString().split('T')[0];
-      }
-    }
-  });
+		  if (phaseStartInput && phaseEndInput) {
+			phaseStartInput.value = startDate.toISOString().split('T')[0];
+			phaseEndInput.value = endDate.toISOString().split('T')[0];
+		  }
+		}
+	  });
 </script>
 </body>
 </html>
