@@ -300,402 +300,176 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
-  <script>
-    // Initialize chart variable
-    let timelineChart = null;
+ <script>
+  // Initialize chart variable
+  let timelineChart = null;
 
-    // Function to create/update the timeline chart
-    function createTimelineChart(timelineData) {
-  try {
-    const ctx = document.getElementById('timelineChart');
-    if (!ctx) throw new Error("Canvas element not found");
+  // ... [UNCHANGED createTimelineChart, validateDates, collectPhaseData, generateExcelFile etc.]
 
-    if (timelineChart instanceof Chart) {
-      timelineChart.destroy();
-    }
-
-    // Generate a dataset per phase as a horizontal bar using a line segment
-		const colors = ['#007bff', '#17a2b8', '#ffc107', '#28a745', '#fd7e14', '#6f42c1', '#dc3545'];
-
-		const datasets = timelineData.map((phase, i) => ({
-		  label: phase.label,
-		  data: [
-			{ x: phase.start, y: i },
-			{ x: phase.end, y: i }
-		  ],
-		  borderColor: colors[i % colors.length],
-		  backgroundColor: colors[i % colors.length],
-		  borderWidth: 8,
-		  showLine: true,
-		  pointRadius: 0
-		}));
-
-
-    const config = {
-      type: 'line',
-      data: { datasets },
-      options: {
-        responsive: true,
-        scales: {
-          x: {
-            type: 'time',
-            position: 'bottom',
-			time: {
-              unit: 'day',
-              displayFormats: {
-              day: 'MMM d'
-              }
-              },
-            title: { display: true, text: 'Timeline' }
-          },
-          y: {
-            type: 'linear',
-            ticks: {
-              callback: function (value) {
-                return timelineData[value]?.label || '';
-              },
-              stepSize: 1
-            },
-            title: { display: true, text: 'Phases' },
-            min: -1,
-            max: timelineData.length
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const phase = timelineData[ctx.datasetIndex];
-                return `${phase.label}: ${phase.start.toLocaleDateString()} – ${phase.end.toLocaleDateString()} (${Math.round(phase.duration)} days)`;
-              }
-            }
-          }
-        },
-        elements: {
-          line: {
-            tension: 0,
-            borderCapStyle: 'round'
-          }
-        }
-      }
-    };
-
-    timelineChart = new Chart(ctx, config);
-    return true;
-  } catch (error) {
-    console.error("Chart creation failed:", error);
-    return false;
-  }
-}
-
-
-    // Function to validate dates
-    function validateDates(starts, ends) {
-      const errors = [];
-      starts.forEach((start, i) => {
-        if (!(start instanceof Date) || isNaN(start.getTime())) {
-          errors.push(`Phase ${i+1}: Invalid start date`);
-        }
-        if (!(ends[i] instanceof Date) || isNaN(ends[i].getTime())) {
-          errors.push(`Phase ${i+1}: Invalid end date`);
-        }
-        if (start > ends[i]) {
-          errors.push(`Phase ${i+1}: End date cannot be before start date`);
-        }
-      });
-      return errors;
-    }
-
-    // Function to collect phase data
-    function collectPhaseData() {
-      const phases = [
-        'Requirement Gathering',
-        'Connectivity Setup',
-        'EDI Mapping Development',
-        'Internal Testing (QA)',
-        'Customer Testing (UAT)',
-        'Go-Live Preparation',
-        'Go-Live & Hypercare'
-      ];
-
-      return phases.map((phase, i) => {
-        const start = new Date(document.querySelector(`[name=phase_start_${i + 1}]`).value);
-        const end = new Date(document.querySelector(`[name=phase_end_${i + 1}]`).value);
-        const duration = (end - start) / (1000 * 60 * 60 * 24);
-        
-        return {
-          label: phase,
-          start,
-          end,
-          duration: duration > 0 ? duration : 1
-        };
-      });
-    }
-	
-	    // Save project to local storage
-    function saveProjectToHistory(formData) {
-      // Get existing projects or initialize empty array
-      const projectHistory = JSON.parse(localStorage.getItem('projectHistory') || '[]');
-      
-      // Add new project
-      projectHistory.push(formData);
-      
-      // Save back to localStorage
-      localStorage.setItem('projectHistory', JSON.stringify(projectHistory));
-    }
-	function renderProjectHistory() {
-  const container = document.getElementById('projectHistoryList');
-  const history = JSON.parse(localStorage.getItem('projectHistory') || '[]');
-
-  if (history.length === 0) {
-    container.innerHTML = 'No projects saved yet.';
-    return;
+  // Save project to local storage (optional fallback)
+  function saveProjectToHistory(formData) {
+    const projectHistory = JSON.parse(localStorage.getItem('projectHistory') || '[]');
+    projectHistory.push(formData);
+    localStorage.setItem('projectHistory', JSON.stringify(projectHistory));
   }
 
-		const html = history.reverse().map(project => `
-		  <div style="border:1px solid #ccc; border-radius:8px; padding:15px; margin-bottom:10px;">
-			<strong>${project.projectTitle}</strong><br>
-			Customer: ${project.customerName}<br>
-			Start: ${project.startDate} | Go-Live: ${project.goLiveDate}<br>
-			Ticket: ${project.ticketNumber} | Channel: ${project.channel}<br>
-			${project.sheetLink ? `<a href="${project.sheetLink}" target="_blank">📄 View Google Sheet</a>` : ''}
-		  </div>
-		`).join('');
+  // Form submission handler
+  document.getElementById('ediForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
 
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+    const timelineData = collectPhaseData();
 
-  container.innerHTML = html;
-}
+    const dateErrors = validateDates(
+      timelineData.map(p => p.start),
+      timelineData.map(p => p.end)
+    );
+    if (dateErrors.length > 0) {
+      alert("Please fix these date issues:\n" + dateErrors.join("\n"));
+      return;
+    }
 
-  // Generate Excel file locally
+    if (!createTimelineChart(timelineData)) {
+      document.getElementById('result').innerHTML = `<p style="color:red">❌ Failed to create timeline chart</p>`;
+      return;
+    }
 
-    function generateExcelFile(formData) {
-      // Create a new workbook
-      const wb = XLSX.utils.book_new();
-      
-      // Prepare project data
-      const projectInfo = [
-        ["Project Title", formData.projectTitle],
-        ["Customer Name", formData.customerName],
-        ["Start Date", formData.startDate],
-        ["Go-Live Date", formData.goLiveDate],
-        ["Contact Email", formData.contactEmail],
-        ["NMB Ticket Number", formData.ticketNumber],
-        ["Communication Channel", formData.channel],
-        ["EDI Document Types", formData.ediDocs]
-      ];
-      
-      // Add project info sheet
-      const wsProject = XLSX.utils.aoa_to_sheet(projectInfo);
-      XLSX.utils.book_append_sheet(wb, wsProject, "Project Info");
-      
-      // Prepare phase data
-      const phaseHeaders = ["Phase", "Start Date", "End Date", "Owner", "Status", "Comment"];
-      const phaseData = [];
-      
-      for (let i = 1; i <= 7; i++) {
-        phaseData.push([
-          document.querySelector(`.phase-row:nth-child(${i}) .phase-title`).textContent.trim(),
-          formData[`phase_start_${i}`],
-          formData[`phase_end_${i}`],
-          formData[`phase_owner_${i}`],
-          formData[`phase_status_${i}`],
-          formData[`phase_comment_${i}`] || ""
-        ]);
+    const summaryDiv = document.getElementById('timelineSummary');
+    summaryDiv.innerHTML = generateSummaryTable(timelineData);
+
+    try {
+      const scriptUrl = 'https://script.google.com/macros/s/AKfycbynyVZcVRmC1RxwPiiYYIK8yPUWKNwV07gA6eZwDOQw0lHRBSPUKZ0_H7OYOFQXLnAl/exec';
+      const response = await fetch(scriptUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(data)
+      });
+
+      const result = await response.json();
+      if (result.status === "success") {
+        const sheetUrl = result.sheetUrl;
+        const dataObj = Object.fromEntries(formData.entries());
+        dataObj.sheetLink = sheetUrl;
+
+        saveProjectToHistory(dataObj); // optional local backup
+
+        document.getElementById('result').innerHTML = `
+          <p style="color:green">✔ Google Sheet created! <a href="${sheetUrl}" target="_blank">📄 View Sheet</a></p>
+        `;
+      } else {
+        throw new Error(result.message || "Unknown error");
       }
-      
-      // Add phases sheet
-      const wsPhases = XLSX.utils.aoa_to_sheet([phaseHeaders, ...phaseData]);
-      XLSX.utils.book_append_sheet(wb, wsPhases, "Project Phases");
-      
-      // Generate Excel file and download
-      XLSX.writeFile(wb, `EDI_Project_${formData.projectTitle.replace(/[^a-z0-9]/gi, '_')}.xlsx`);
+    } catch (error) {
+      console.error("Google Sheet creation failed:", error);
+      generateExcelFile(data);
+      document.getElementById('result').innerHTML = `
+        <p style="color:orange">⚠ Could not create Google Sheet. Local Excel file generated instead.</p>
+        <p>Error: ${error.message}</p>
+      `;
     }
+  });
 
+  // Generate summary table
+  function generateSummaryTable(timelineData) {
+    let tableHTML = `
+      <table style='width:100%; border-collapse: collapse; margin-top: 20px;'>
+        <thead>
+          <tr style='background:#004080;color:white;'>
+            <th style='padding:8px;border:1px solid #ccc;'>Phase</th>
+            <th style='padding:8px;border:1px solid #ccc;'>Start Date</th>
+            <th style='padding:8px;border:1px solid #ccc;'>End Date</th>
+            <th style='padding:8px;border:1px solid #ccc;'>Duration</th>
+          </tr>
+        </thead>
+        <tbody>`;
 
-    // Form submission handler
-		document.getElementById('ediForm').addEventListener('submit', async function(e) {
-		  e.preventDefault();
+    timelineData.forEach(d => {
+      tableHTML += `
+        <tr>
+          <td style='padding:8px;border:1px solid #ccc;'>${d.label}</td>
+          <td style='padding:8px;border:1px solid #ccc;'>${d.start.toLocaleDateString()}</td>
+          <td style='padding:8px;border:1px solid #ccc;'>${d.end.toLocaleDateString()}</td>
+          <td style='padding:8px;border:1px solid #ccc;'>${Math.round(d.duration)} days</td>
+        </tr>`;
+    });
 
-		  // Collect form data
-		  const formData = new FormData(this);
-		  const data = Object.fromEntries(formData.entries());
+    tableHTML += '</tbody></table>';
+    return tableHTML;
+  }
 
-		  // Collect phase data
-		  const timelineData = collectPhaseData();
-
-		  // Validate dates
-		  const dateErrors = validateDates(
-			timelineData.map(p => p.start),
-			timelineData.map(p => p.end)
-		  );
-
-		  if (dateErrors.length > 0) {
-			alert("Please fix these date issues:\n" + dateErrors.join("\n"));
-			return;
-		  }
-
-		  // Create the chart
-		  if (!createTimelineChart(timelineData)) {
-			document.getElementById('result').innerHTML = `
-			  <p style="color:red">❌ Failed to create timeline chart</p>
-			`;
-			return;
-		  }
-
-		  // Generate summary table
-		  const summaryDiv = document.getElementById('timelineSummary');
-		  summaryDiv.innerHTML = generateSummaryTable(timelineData);
-
-		  try {
-			const scriptUrl = 'https://script.google.com/macros/s/AKfycbynyVZcVRmC1RxwPiiYYIK8yPUWKNwV07gA6eZwDOQw0lHRBSPUKZ0_H7OYOFQXLnAl/exec';
-
-			const response = await fetch(scriptUrl, {
-			  method: 'POST',
-			  headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-			  },
-			  body: new URLSearchParams(data)
-			});
-
-
-			const result = await response.json();
-
-			if (result.status === "success") {
-			  const sheetUrl = result.sheetUrl;
-			  const dataObj = Object.fromEntries(formData.entries());
-			  dataObj.sheetLink = sheetUrl;
-
-			  saveProjectToHistory(dataObj);
-			  renderProjectHistory();
-
-			  document.getElementById('result').innerHTML = `
-				<p style="color:green">✔ Google Sheet created! <a href="${sheetUrl}" target="_blank">📄 View Sheet</a></p>
-			  `;
-			} else {
-			  throw new Error(result.message || "Unknown error");
-			}
-		  } catch (error) {
-			console.error("Google Sheet creation failed:", error);
-			generateExcelFile(data);
-			document.getElementById('result').innerHTML = `
-			  <p style="color:orange">⚠ Could not create Google Sheet. Local Excel file generated instead.</p>
-			  <p>Error: ${error.message}</p>
-			`;
-		  }
-
-		  renderProjectHistory();
-		});
-
-    // Generate summary table
-    function generateSummaryTable(timelineData) {
-      let tableHTML = `
-        <table style='width:100%; border-collapse: collapse; margin-top: 20px;'>
-          <thead>
-            <tr style='background:#004080;color:white;'>
-              <th style='padding:8px;border:1px solid #ccc;'>Phase</th>
-              <th style='padding:8px;border:1px solid #ccc;'>Start Date</th>
-              <th style='padding:8px;border:1px solid #ccc;'>End Date</th>
-              <th style='padding:8px;border:1px solid #ccc;'>Duration</th>
-            </tr>
-          </thead>
-          <tbody>`;
-
-      timelineData.forEach(d => {
-        tableHTML += `
-          <tr>
-            <td style='padding:8px;border:1px solid #ccc;'>${d.label}</td>
-            <td style='padding:8px;border:1px solid #ccc;'>${d.start.toLocaleDateString()}</td>
-            <td style='padding:8px;border:1px solid #ccc;'>${d.end.toLocaleDateString()}</td>
-            <td style='padding:8px;border:1px solid #ccc;'>${Math.round(d.duration)} days</td>
-          </tr>`;
-      });
-
-      tableHTML += '</tbody></table>';
-      return tableHTML;
+  // Chart image download
+  document.getElementById('downloadChart').addEventListener('click', function () {
+    if (!timelineChart) {
+      alert("Please generate the chart first");
+      return;
     }
+    const canvas = document.getElementById('timelineChart');
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.fillStyle = "#ffffff";
+    tempCtx.fillRect(0, 0, canvas.width, canvas.height);
+    tempCtx.drawImage(canvas, 0, 0);
+    const link = document.createElement('a');
+    link.download = 'edi_timeline.png';
+    link.href = tempCanvas.toDataURL('image/png');
+    link.click();
+  });
 
-    // Download chart as image
-		document.getElementById('downloadChart').addEventListener('click', function () {
-		  if (!timelineChart) {
-			alert("Please generate the chart first");
-			return;
-		  }
+  // Dynamic style updates
+  function applyDynamicStyling() {
+    document.querySelectorAll('select[name^="phase_status_"]').forEach(select => {
+      const updateStatusColor = () => {
+        select.className = 'status-select status-' + select.value.replace(/ /g, '');
+      };
+      select.addEventListener('change', updateStatusColor);
+      updateStatusColor();
+    });
 
-		  const canvas = document.getElementById('timelineChart');
-		  const tempCanvas = document.createElement('canvas');
-		  tempCanvas.width = canvas.width;
-		  tempCanvas.height = canvas.height;
-		  const tempCtx = tempCanvas.getContext('2d');
+    document.querySelectorAll('select[name^="phase_owner_"]').forEach(select => {
+      const updateOwnerColor = () => {
+        select.className = 'owner-' + select.value.replace(/ /g, '');
+      };
+      select.addEventListener('change', updateOwnerColor);
+      updateOwnerColor();
+    });
+  }
 
-		  tempCtx.fillStyle = "#ffffff";
-		  tempCtx.fillRect(0, 0, canvas.width, canvas.height);
-		  tempCtx.drawImage(canvas, 0, 0);
+  // Init on load
+  document.addEventListener('DOMContentLoaded', function () {
+    applyDynamicStyling();
 
-		  const link = document.createElement('a');
-		  link.download = 'edi_timeline.png';
-		  link.href = tempCanvas.toDataURL('image/png');
-		  link.click();
-		});
+    // ⛔ Removed renderProjectHistory(); from here
 
+    // Set default dates
+    const today = new Date().toISOString().split('T')[0];
+    const startDateInput = document.querySelector('input[name="startDate"]');
+    if (startDateInput) startDateInput.value = today;
 
-    // Apply dynamic styling for status and owner fields
-    function applyDynamicStyling() {
-      document.querySelectorAll('select[name^="phase_status_"]').forEach(select => {
-        const updateStatusColor = () => {
-          select.className = 'status-select status-' + select.value.replace(/ /g, '');
-        };
-        select.addEventListener('change', updateStatusColor);
-        updateStatusColor();
-      });
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 30);
+    const goLiveDateInput = document.querySelector('input[name="goLiveDate"]');
+    if (goLiveDateInput) goLiveDateInput.value = futureDate.toISOString().split('T')[0];
 
-      document.querySelectorAll('select[name^="phase_owner_"]').forEach(select => {
-        const updateOwnerColor = () => {
-          select.className = 'owner-' + select.value.replace(/ /g, '');
-        };
-        select.addEventListener('change', updateOwnerColor);
-        updateOwnerColor();
-      });
+    for (let i = 1; i <= 7; i++) {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() + (i - 1) * 4);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 3);
+
+      const phaseStartInput = document.querySelector(`input[name="phase_start_${i}"]`);
+      const phaseEndInput = document.querySelector(`input[name="phase_end_${i}"]`);
+
+      if (phaseStartInput && phaseEndInput) {
+        phaseStartInput.value = startDate.toISOString().split('T')[0];
+        phaseEndInput.value = endDate.toISOString().split('T')[0];
+      }
     }
-
-	// Initialize on load
-	document.addEventListener('DOMContentLoaded', function() {
-	  applyDynamicStyling();
-	  
-	  renderProjectHistory();
-
-	  
-	  // Set default dates
-	  const today = new Date().toISOString().split('T')[0];
-	  const startDateInput = document.querySelector('input[name="startDate"]');
-	  if (startDateInput) {
-		startDateInput.value = today;
-	  }
-	  
-	  // Set go-live date to 30 days from now
-	  const futureDate = new Date();
-	  futureDate.setDate(futureDate.getDate() + 30);
-	  const goLiveDateInput = document.querySelector('input[name="goLiveDate"]');
-	  if (goLiveDateInput) {
-		goLiveDateInput.value = futureDate.toISOString().split('T')[0];
-	  }
-	  
-	  // Set phase dates
-	  for (let i = 1; i <= 7; i++) {
-		const startDate = new Date();
-		startDate.setDate(startDate.getDate() + (i-1)*4);
-		const endDate = new Date(startDate);
-		endDate.setDate(endDate.getDate() + 3);
-		
-		const phaseStartInput = document.querySelector(`input[name="phase_start_${i}"]`);
-		const phaseEndInput = document.querySelector(`input[name="phase_end_${i}"]`);
-		
-		if (phaseStartInput && phaseEndInput) {
-		  phaseStartInput.value = startDate.toISOString().split('T')[0];
-		  phaseEndInput.value = endDate.toISOString().split('T')[0];
-		}
-	  }
-	});
-  </script>
+  });
+</script>
 </body>
 </html>
