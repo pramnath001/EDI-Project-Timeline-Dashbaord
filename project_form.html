@@ -312,7 +312,182 @@
     projectHistory.push(formData);
     localStorage.setItem('projectHistory', JSON.stringify(projectHistory));
   }
+// Collect phase data for the timeline chart
+function collectPhaseData() {
+  const phases = [];
+  for (let i = 1; i <= 7; i++) {
+    const startDate = new Date(document.querySelector(`input[name="phase_start_${i}"]`).value);
+    const endDate = new Date(document.querySelector(`input[name="phase_end_${i}"]`).value);
+    const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) || 1;
+    const status = document.querySelector(`select[name="phase_status_${i}"]`).value;
+    const owner = document.querySelector(`select[name="phase_owner_${i}"]`).value;
+    const comment = document.querySelector(`textarea[name="phase_comment_${i}"]`).value;
+    
+    phases.push({
+      id: i,
+      label: document.querySelector(`.phase-row:nth-child(${i}) .phase-title`).textContent.trim(),
+      start: startDate,
+      end: endDate,
+      duration: duration,
+      status: status,
+      owner: owner,
+      comment: comment
+    });
+  }
+  return phases;
+}
 
+// Validate phase dates
+function validateDates(startDates, endDates) {
+  const errors = [];
+  
+  // Check each phase's dates
+  for (let i = 0; i < startDates.length; i++) {
+    if (startDates[i] > endDates[i]) {
+      errors.push(`Phase ${i+1}: End date cannot be before start date`);
+    }
+    
+    // Check overlap with next phase (if exists)
+    if (i < startDates.length - 1 && endDates[i] > startDates[i+1]) {
+      errors.push(`Phase ${i+1} overlaps with Phase ${i+2}`);
+    }
+  }
+  
+  return errors;
+}
+
+// Create timeline chart
+function createTimelineChart(phaseData) {
+  try {
+    const ctx = document.getElementById('timelineChart').getContext('2d');
+    
+    // Destroy previous chart if exists
+    if (timelineChart) {
+      timelineChart.destroy();
+    }
+    
+    // Prepare chart data
+    const labels = phaseData.map(p => p.label);
+    const startDates = phaseData.map(p => p.start);
+    const durations = phaseData.map(p => p.duration);
+    const backgroundColors = phaseData.map(p => {
+      switch(p.status) {
+        case 'In Progress': return '#007bff';
+        case 'Pending': return '#ffc107';
+        case 'Follow up Required': return '#dc3545';
+        case 'Closed': return '#28a745';
+        default: return '#6c757d';
+      }
+    });
+    
+    timelineChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Project Timeline',
+          data: durations,
+          backgroundColor: backgroundColors,
+          borderColor: backgroundColors.map(c => Chart.helpers.color(c).darken(0.2).rgbString()),
+          borderWidth: 1,
+          barPercentage: 0.6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        scales: {
+          x: {
+            min: Math.min(...startDates) - 3 * 24 * 60 * 60 * 1000, // 3 days before first phase
+            max: Math.max(...phaseData.map(p => p.end)) + 3 * 24 * 60 * 60 * 1000, // 3 days after last phase
+            type: 'time',
+            time: {
+              unit: 'day',
+              displayFormats: { day: 'MMM d' }
+            },
+            position: 'top'
+          },
+          y: {
+            stacked: true,
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const phase = phaseData[context.dataIndex];
+                return [
+                  `Start: ${phase.start.toLocaleDateString()}`,
+                  `End: ${phase.end.toLocaleDateString()}`,
+                  `Duration: ${phase.duration} days`,
+                  `Status: ${phase.status}`,
+                  `Owner: ${phase.owner}`
+                ];
+              }
+            }
+          },
+          legend: { display: false }
+        }
+      }
+    });
+    
+    return true;
+  } catch (err) {
+    console.error("Error creating chart:", err);
+    return false;
+  }
+}
+
+// Generate Excel file as fallback
+function generateExcelFile(formData) {
+  try {
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Prepare data for Project Info sheet
+    const projectInfoData = [
+      ["Project Title", formData.projectTitle],
+      ["Customer Name", formData.customerName],
+      ["Start Date", formData.startDate],
+      ["Go-Live Date", formData.goLiveDate],
+      ["Contact Email", formData.contactEmail],
+      ["NMB Ticket Number", formData.ticketNumber],
+      ["Communication Channel", formData.channel],
+      ["EDI Document Types", formData.ediDocs]
+    ];
+    
+    const projectInfoWS = XLSX.utils.aoa_to_sheet(projectInfoData);
+    XLSX.utils.book_append_sheet(wb, projectInfoWS, "Project Info");
+    
+    // Prepare data for Phases sheet
+    const phasesHeader = ["Phase", "Start Date", "End Date", "Duration", "Owner", "Status", "Comments"];
+    const phasesData = [phasesHeader];
+    
+    for (let i = 1; i <= 7; i++) {
+      phasesData.push([
+        document.querySelector(`.phase-row:nth-child(${i}) .phase-title`).textContent.trim(),
+        formData[`phase_start_${i}`],
+        formData[`phase_end_${i}`],
+        Math.ceil((new Date(formData[`phase_end_${i}`]) - new Date(formData[`phase_start_${i}`])) / (1000 * 60 * 60 * 24)),
+        formData[`phase_owner_${i}`],
+        formData[`phase_status_${i}`],
+        formData[`phase_comment_${i}`]
+      ]);
+    }
+    
+    const phasesWS = XLSX.utils.aoa_to_sheet(phasesData);
+    XLSX.utils.book_append_sheet(wb, phasesWS, "Project Phases");
+    
+    // Generate and download file
+    const fileName = `EDI_Project_${formData.projectTitle.replace(/[^a-z0-9]/gi, '_')}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    
+    return true;
+  } catch (err) {
+    console.error("Error generating Excel file:", err);
+    return false;
+  }
+}
   // Form submission handler
   document.getElementById('ediForm').addEventListener('submit', async function(e) {
     e.preventDefault();
