@@ -372,83 +372,82 @@ function getStatusColor(status) {
 function createTimelineChart(phaseData) {
   try {
     const ctx = document.getElementById('timelineChart').getContext('2d');
-
+    
+    // Destroy previous chart if exists
     if (timelineChart) {
       timelineChart.destroy();
     }
-
-    const bars = phaseData.map(p => ({
-      x: [p.start, p.end],
-      y: p.label,
-      backgroundColor: getStatusColor(p.status)
-    }));
-
+    
+    // Prepare chart data
+    const datasets = phaseData.map(phase => {
+      return {
+        label: phase.label,
+        data: [{
+          x: phase.start,
+          y: phase.label,
+          x2: phase.end
+        }],
+        backgroundColor: getStatusColor(phase.status),
+        borderColor: '#000',
+        borderWidth: 1,
+        borderSkipped: false,
+        barPercentage: 0.8
+      };
+    });
+    
     timelineChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: phaseData.map(p => p.label),  // ✅ Important: required even if unused
-        datasets: [{
-          label: 'Project Timeline',
-          data: bars,
-          parsing: {
-            xAxisKey: 'x',
-            yAxisKey: 'y'
-          },
-          backgroundColor: bars.map(p => p.backgroundColor),
-          borderSkipped: false,
-          barPercentage: 0.6
-        }]
+        datasets: datasets
       },
       options: {
         indexAxis: 'y',
         responsive: true,
-        maintainAspectRatio: false,
         scales: {
           x: {
             type: 'time',
-            position: 'bottom',
             time: {
               unit: 'day',
-              tooltipFormat: 'MMM dd',
               displayFormats: {
                 day: 'MMM d'
               }
             },
-            title: {
-              display: true,
-              text: 'Timeline'
-            },
-            grid: { display: true }
+            min: new Date(Math.min(...phaseData.map(p => p.start.getTime())) - (3 * 24 * 60 * 60 * 1000),
+            max: new Date(Math.max(...phaseData.map(p => p.end.getTime())) + (3 * 24 * 60 * 60 * 1000)),
+            position: 'top'
           },
           y: {
-            title: { display: false },
-            ticks: { autoSkip: false },
-            grid: { display: false }
+            stacked: false,
+            grid: {
+              display: false
+            }
           }
         },
         plugins: {
           tooltip: {
             callbacks: {
-              label: function (context) {
-                const p = phaseData[context.dataIndex];
+              label: function(context) {
+                const phase = phaseData[context.dataIndex];
                 return [
-                  `Start: ${p.start.toLocaleDateString()}`,
-                  `End: ${p.end.toLocaleDateString()}`,
-                  `Duration: ${p.duration} days`,
-                  `Status: ${p.status}`,
-                  `Owner: ${p.owner}`
+                  `Start: ${phase.start.toLocaleDateString()}`,
+                  `End: ${phase.end.toLocaleDateString()}`,
+                  `Duration: ${phase.duration} days`,
+                  `Status: ${phase.status}`,
+                  `Owner: ${phase.owner}`
                 ];
               }
             }
           },
-          legend: { display: false }
+          legend: {
+            display: false
+          }
         }
       }
     });
-
+    
     return true;
   } catch (error) {
-    console.error("Error generating timeline chart:", error);
+    console.error("Error creating timeline chart:", error);
     return false;
   }
 }
