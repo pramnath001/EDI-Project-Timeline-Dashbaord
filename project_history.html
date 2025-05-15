@@ -137,51 +137,59 @@
     }
   }
 
-  function renderTable(data) {
-    const tbody = document.getElementById('historyBody');
-    tbody.innerHTML = '';
+  // Rest of your existing functions (renderTable, viewChart, etc.) remain the same
+function renderTable(data) {
+  const tbody = document.getElementById('historyBody');
+  tbody.innerHTML = '';
 
-    if (!data || data.length === 0) {
-      const row = document.createElement('tr');
-      row.innerHTML = '<td colspan="10" style="text-align: center;">No projects found</td>';
-      tbody.appendChild(row);
-      return;
-    }
-
-    data.forEach((entry, index) => {
-      const row = document.createElement('tr');
-      const safeTitle = entry.projectTitle ? entry.projectTitle.replace(/[^a-z0-9]/gi, '_') : 'project';
-      const downloadUrl = entry.sheetUrl && entry.sheetUrl.includes("/edit")
-        ? entry.sheetUrl.replace("/edit", "/export?format=xlsx")
-        : entry.sheetUrl || "#";
-
-      row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${entry.projectTitle || ''}</td>
-        <td>${entry.customerName || ''}</td>
-        <td>${entry.channel || ''}</td>
-        <td>${entry.ediDocs || ''}</td>
-        <td>${entry.startDate || ''}</td>
-        <td>${entry.goLiveDate || ''}</td>
-        <td>
-          <a href="${entry.sheetUrl || entry.sheetLink || '#'}" target="_blank">📄 View</a> |
-          <a href="${downloadUrl}" target="_blank">⬇️ Download</a>
-        </td>
-        <td>
-          ${entry.chartImage ? `
-            <button class="view-btn" onclick="viewChart('${entry.chartImage.replace(/'/g, "\\'")}')">View</button>
-            <button class="view-btn" onclick="downloadChart('${entry.chartImage.replace(/'/g, "\\'")}', 'Chart_${safeTitle}.png')">Download</button>
-          ` : ''}
-        </td>
-        <td>${entry.modifiedAt || ''}</td>
-      `;
-      tbody.appendChild(row);
-    });
+  if (!data || data.length === 0) {
+    const row = document.createElement('tr');
+    row.innerHTML = '<td colspan="10" style="text-align: center;">No projects found</td>';
+    tbody.appendChild(row);
+    return;
   }
+
+  data.forEach((entry, index) => {
+    const row = document.createElement('tr');
+    const safeTitle = entry.projectTitle ? entry.projectTitle.replace(/[^a-z0-9]/gi, '_') : 'project';
+    const downloadUrl = entry.sheetUrl && entry.sheetUrl.includes("/edit")
+      ? entry.sheetUrl.replace("/edit", "/export?format=xlsx")
+      : entry.sheetUrl || "#";
+
+    // Create buttons separately to avoid quote escaping issues
+    const viewButton = entry.chartImage 
+      ? `<button class="view-btn" onclick="viewChart('${entry.chartImage.replace(/'/g, "\\'")}')">View</button>`
+      : '';
+    
+    const downloadButton = entry.chartImage
+      ? `<button class="view-btn" onclick="downloadChart('${entry.chartImage.replace(/'/g, "\\'")}', 'Chart_${safeTitle}.png')">Download</button>`
+      : '';
+
+    row.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${entry.projectTitle || ''}</td>
+      <td>${entry.customerName || ''}</td>
+      <td>${entry.channel || ''}</td>
+      <td>${entry.ediDocs || ''}</td>
+      <td>${entry.startDate || ''}</td>
+      <td>${entry.goLiveDate || ''}</td>
+      <td>
+        <a href="${entry.sheetUrl || entry.sheetLink || '#'}" target="_blank">📄 View</a> |
+        <a href="${downloadUrl}" target="_blank">⬇️ Download</a>
+      </td>
+      <td>
+        ${viewButton}
+        ${downloadButton}
+      </td>
+      <td>${entry.modifiedAt || ''}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
 
   function viewChart(base64) {
     const win = window.open();
-    win.document.write('<img src="' + base64 + '" style="width:100%;" />');
+    win.document.write(`<img src="${base64}" style="width:100%;" />`);
   }
 
   function downloadChart(base64Data, filename) {
