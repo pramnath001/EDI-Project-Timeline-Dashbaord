@@ -362,86 +362,104 @@ function createTimelineChart(phaseData) {
   try {
     const ctx = document.getElementById('timelineChart').getContext('2d');
     
-    // Destroy previous chart if exists
     if (timelineChart) {
       timelineChart.destroy();
     }
-    
-    // Prepare chart data
-		const backgroundColors = {
-		  'In Progress': '#007bff',
-		  'Pending': '#ffc107',
-		  'Follow up Required': '#dc3545',
-		  'Closed': '#28a745',
-		  'Open': '#6c757d'
-		};
 
-		const chartData = phaseData.map(p => ({
-		  x: p.start,
-		  x2: p.end,
-		  y: p.label,
-		  backgroundColor: backgroundColors[p.status] || '#6c757d'
-		}));
+    const backgroundColors = phaseData.map(p => {
+      switch (p.status) {
+        case 'In Progress': return '#007bff';
+        case 'Pending': return '#ffc107';
+        case 'Follow up Required': return '#dc3545';
+        case 'Closed': return '#28a745';
+        default: return '#6c757d';
+      }
+    });
 
-    
+    const bars = phaseData.map(p => ({
+      x: [p.start, p.end],
+      y: p.label,
+      backgroundColor: backgroundColors[phaseData.indexOf(p)]
+    }));
+
     timelineChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: labels,
-		datasets: [{
-		  label: 'Project Timeline',
-		  data: chartData,
-		  parsing: { xAxisKey: 'x', x2AxisKey: 'x2', yAxisKey: 'y' },
-		  backgroundColor: chartData.map(p => p.backgroundColor),
-		  borderColor: chartData.map(p => p.backgroundColor),
-		  borderWidth: 1,
-		  barPercentage: 0.8
-		}]
+        datasets: [{
+          label: 'Project Phases',
+          data: bars,
+          parsing: {
+            xAxisKey: 'x',
+            yAxisKey: 'y'
+          },
+          backgroundColor: bars.map(b => b.backgroundColor),
+          borderSkipped: false
+        }]
       },
       options: {
         indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
         scales: {
           x: {
-            min: Math.min(...startDates) - 3 * 24 * 60 * 60 * 1000, // 3 days before first phase
-            max: Math.max(...phaseData.map(p => p.end)) + 3 * 24 * 60 * 60 * 1000, // 3 days after last phase
             type: 'time',
+            position: 'bottom',  // <-- Date axis at bottom
             time: {
               unit: 'day',
-              displayFormats: { day: 'MMM d' }
+              tooltipFormat: 'MMM dd',
+              displayFormats: {
+                day: 'MMM d'
+              }
             },
-            position: 'top'
+            title: {
+              display: true,
+              text: 'Timeline'
+            },
+            grid: {
+              display: true
+            }
           },
           y: {
-            stacked: true,
-            grid: { display: false }
+            title: {
+              display: false
+            },
+            ticks: {
+              autoSkip: false
+            },
+            grid: {
+              display: false
+            }
           }
         },
         plugins: {
           tooltip: {
             callbacks: {
-              label: function(context) {
-                const phase = phaseData[context.dataIndex];
+              label: function (context) {
+                const p = phaseData[context.dataIndex];
                 return [
-                  `Start: ${phase.start.toLocaleDateString()}`,
-                  `End: ${phase.end.toLocaleDateString()}`,
-                  `Duration: ${phase.duration} days`,
-                  `Status: ${phase.status}`,
-                  `Owner: ${phase.owner}`
+                  `Start: ${p.start.toLocaleDateString()}`,
+                  `End: ${p.end.toLocaleDateString()}`,
+                  `Duration: ${p.duration} days`,
+                  `Status: ${p.status}`,
+                  `Owner: ${p.owner}`
                 ];
               }
             }
           },
-          legend: { display: false }
+          legend: {
+            display: false
+          }
         }
       }
     });
-    
+
     return true;
-  } catch (err) {
-    console.error("Error creating chart:", err);
+  } catch (error) {
+    console.error("Error generating timeline chart:", error);
     return false;
   }
 }
+
 
 // Generate Excel file as fallback
 function generateExcelFile(formData) {
