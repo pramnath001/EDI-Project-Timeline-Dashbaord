@@ -444,28 +444,6 @@
       // Save back to localStorage
       localStorage.setItem('projectHistory', JSON.stringify(projectHistory));
     }
-	function renderProjectHistory() {
-  const container = document.getElementById('projectHistoryList');
-  const history = JSON.parse(localStorage.getItem('projectHistory') || '[]');
-
-  if (history.length === 0) {
-    container.innerHTML = 'No projects saved yet.';
-    return;
-  }
-
-		const html = history.reverse().map(project => `
-		  <div style="border:1px solid #ccc; border-radius:8px; padding:15px; margin-bottom:10px;">
-			<strong>${project.projectTitle}</strong><br>
-			Customer: ${project.customerName}<br>
-			Start: ${project.startDate} | Go-Live: ${project.goLiveDate}<br>
-			Ticket: ${project.ticketNumber} | Channel: ${project.channel}<br>
-			${project.sheetLink ? `<a href="${project.sheetLink}" target="_blank">📄 View Google Sheet</a>` : ''}
-		  </div>
-		`).join('');
-
-
-  container.innerHTML = html;
-}
 
   // Generate Excel file locally
 
@@ -542,6 +520,10 @@
 			`;
 			return;
 		  }
+		    // ✅ Convert canvas chart to base64 image
+			  const canvas = document.getElementById("timelineChart");
+			  const chartImage = canvas.toDataURL("image/png"); // 📸 Convert chart to image
+			  data.chartImage = chartImage;
 
 		  // Generate summary table
 		  const summaryDiv = document.getElementById('timelineSummary');
@@ -550,13 +532,20 @@
 		  try {
 			const scriptUrl = 'https://script.google.com/macros/s/AKfycbynyVZcVRmC1RxwPiiYYIK8yPUWKNwV07gA6eZwDOQw0lHRBSPUKZ0_H7OYOFQXLnAl/exec';
 
+			const formBody = new URLSearchParams();
+			for (const [key, value] of Object.entries(data)) {
+			  formBody.append(key, value);
+			}
+			formBody.append("chartImage", chartImage); // ✅ Include chart image
+
 			const response = await fetch(scriptUrl, {
 			  method: 'POST',
 			  headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
 			  },
-			  body: new URLSearchParams(data)
+			  body: formBody
 			});
+
 
 
 			const result = await response.json();
@@ -565,8 +554,7 @@
 			  const sheetUrl = result.sheetUrl;
 			  const dataObj = Object.fromEntries(formData.entries());
 			  dataObj.sheetLink = sheetUrl;
-
-			  saveProjectToHistory(dataObj);
+			  
 			  renderProjectHistory();
 
 			  document.getElementById('result').innerHTML = `
@@ -661,9 +649,7 @@
 	// Initialize on load
 	document.addEventListener('DOMContentLoaded', function() {
 	  applyDynamicStyling();
-	  
-	  renderProjectHistory();
-
+	 
 	  
 	  // Set default dates
 	  const today = new Date().toISOString().split('T')[0];
