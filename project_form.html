@@ -379,23 +379,22 @@ function createTimelineChart(phaseData) {
     const bars = phaseData.map(p => ({
       x: [p.start, p.end],
       y: p.label,
-      backgroundColor: backgroundColors[phaseData.indexOf(p)]
-    }));
+      backgroundColor: getStatusColor(p.status)
+	}));
 
-    timelineChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        datasets: [{
-          label: 'Project Phases',
-          data: bars,
-          parsing: {
-            xAxisKey: 'x',
-            yAxisKey: 'y'
-          },
-          backgroundColor: bars.map(b => b.backgroundColor),
-          borderSkipped: false
-        }]
-      },
+		data: {
+		  datasets: [{
+			label: 'Project Timeline',
+			data: bars, // bars contains objects with {x, y}
+			parsing: {
+			  xAxisKey: 'x',
+			  yAxisKey: 'y'
+			},
+			backgroundColor: bars.map(p => p.backgroundColor),
+			borderSkipped: false,
+			barPercentage: 0.6
+		  }]
+		},
       options: {
         indexAxis: 'y',
         responsive: true,
