@@ -430,45 +430,46 @@
       updateStatusColor();
     });
 
-    document.querySelectorAll('select[name^="phase_owner_"]').forEach(select => {
-      const updateOwnerColor = () => {
-        select.className = 'owner-' + select.value.replace(/ /g, '');
-      };
-      select.addEventListener('change', updateOwnerColor);
-      updateOwnerColor();
-    });
-  }
-
-	  // Init on load
-		document.addEventListener('DOMContentLoaded', function () {
-		  applyDynamicStyling();
-
-		  // Set default start & go-live date
-		  const today = new Date();
-		  const todayStr = today.toISOString().split('T')[0];
-
-		  const goLiveDate = new Date();
-		  goLiveDate.setDate(goLiveDate.getDate() + 30);
-		  const goLiveStr = goLiveDate.toISOString().split('T')[0];
-
-		  document.querySelector('input[name="startDate"]').value = todayStr;
-		  document.querySelector('input[name="goLiveDate"]').value = goLiveStr;
-
-		  // Set default values for each phase
-		  for (let i = 1; i <= 7; i++) {
-			const start = new Date(today);
-			start.setDate(start.getDate() + (i - 1) * 4);
-
-			const end = new Date(start);
-			end.setDate(end.getDate() + 3);
-
-			const startInput = document.querySelector(`input[name="phase_start_${i}"]`);
-			const endInput = document.querySelector(`input[name="phase_end_${i}"]`);
-
-			if (startInput) startInput.value = start.toISOString().split('T')[0];
-			if (endInput) endInput.value = end.toISOString().split('T')[0];
-		  }
+		document.querySelectorAll('select[name^="phase_owner_"]').forEach(select => {
+		  const updateOwnerColor = () => {
+			select.className = 'owner-' + select.value.replace(/ /g, '');
+		  };
+		  select.addEventListener('change', updateOwnerColor);
+		  updateOwnerColor();
 		});
+	  }
+
+		  // Init on load
+		  
+	  applyDynamicStyling(); // Apply dropdown styles
+
+	  // Set default project start and go-live dates
+	  const today = new Date();
+	  const todayStr = today.toISOString().split('T')[0];
+
+	  const goLive = new Date();
+	  goLive.setDate(today.getDate() + 30);
+	  const goLiveStr = goLive.toISOString().split('T')[0];
+
+	  document.querySelector('input[name="startDate"]').value = todayStr;
+	  document.querySelector('input[name="goLiveDate"]').value = goLiveStr;
+
+	  // Set default start/end dates for each project phase
+	  for (let i = 1; i <= 7; i++) {
+		const start = new Date();
+		start.setDate(today.getDate() + (i - 1) * 4);
+
+		const end = new Date(start);
+		end.setDate(end.getDate() + 3);
+
+		const startInput = document.querySelector(`input[name="phase_start_${i}"]`);
+		const endInput = document.querySelector(`input[name="phase_end_${i}"]`);
+
+		if (startInput && endInput) {
+		  startInput.value = start.toISOString().split('T')[0];
+		  endInput.value = end.toISOString().split('T')[0];
+		}
+	  }
 
 </script>
 </body>
