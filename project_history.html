@@ -91,12 +91,13 @@
       const response = await fetch('https://script.google.com/macros/s/AKfycbynyVZcVRmC1RxwPiiYYIK8yPUWKNwV07gA6eZwDOQw0lHRBSPUKZ0_H7OYOFQXLnAl/exec');
       const result = await response.json();
 
-      if (!Array.isArray(result)) throw new Error("Invalid response format");
-
-      projectData = result;
-      originalData = [...result];
-
-      renderTable(projectData);
+      if (Array.isArray(result)) {
+        projectData = result;
+        originalData = [...result];
+        renderTable(projectData);
+      } else {
+        throw new Error("Invalid response format");
+      }
     } catch (err) {
       alert("❌ Failed to load project history");
       console.error(err);
@@ -109,46 +110,43 @@
 
     data.forEach((entry, index) => {
       const row = document.createElement('tr');
-      const safeTitle = entry.projectTitle.replace(/[^a-z0-9]/gi, '_');
+      const safeTitle = entry.projectTitle?.replace(/[^a-z0-9]/gi, '_') || 'project';
       const downloadUrl = entry.sheetUrl?.includes("/edit")
         ? entry.sheetUrl.replace("/edit", "/export?format=xlsx")
         : entry.sheetUrl || "#";
 
       row.innerHTML = `
         <td>${index + 1}</td>
-        <td>${entry.projectTitle}</td>
-        <td>${entry.customerName}</td>
-        <td>${entry.channel}</td>
-        <td>${entry.ediDocs}</td>
-        <td>${entry.startDate}</td>
-        <td>${entry.goLiveDate}</td>
+        <td>${entry.projectTitle || ''}</td>
+        <td>${entry.customerName || ''}</td>
+        <td>${entry.channel || ''}</td>
+        <td>${entry.ediDocs || ''}</td>
+        <td>${entry.startDate || ''}</td>
+        <td>${entry.goLiveDate || ''}</td>
         <td>
           <a href="${entry.sheetUrl}" target="_blank">📄 View</a> |
           <a href="${downloadUrl}" target="_blank">⬇️ Download</a>
         </td>
         <td>
           ${entry.chartImage ? `
-            <button class="view-btn" onclick="viewChart(&quot;${encodeURIComponent(entry.chartImage)}&quot;)">View</button>
-            <button class="view-btn" onclick="downloadChart(&quot;${encodeURIComponent(entry.chartImage)}&quot;, &quot;Chart_${safeTitle}.png&quot;)">Download</button>
+            <button class="view-btn" onclick="viewChart('${entry.chartImage}')">View</button>
+            <button class="view-btn" onclick="downloadChart('${entry.chartImage}', 'Chart_${safeTitle}.png')">Download</button>
           ` : ''}
         </td>
-
         <td>${entry.modifiedAt || ''}</td>
       `;
       tbody.appendChild(row);
     });
   }
 
-  function viewChart(encodedBase64) {
-    const base64 = decodeURIComponent(encodedBase64);
+  function viewChart(base64) {
     const win = window.open();
     win.document.write(`<img src="${base64}" style="width:100%;" />`);
   }
 
-  function downloadChart(encodedBase64, filename) {
-    const base64 = decodeURIComponent(encodedBase64);
+  function downloadChart(base64Data, filename) {
     const a = document.createElement('a');
-    a.href = base64;
+    a.href = base64Data;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
@@ -170,7 +168,7 @@
   function exportCSV() {
     const headers = ['S.No','Project Title', 'Customer', 'Channel', 'EDI Docs', 'Start Date', 'Go-Live Date', 'Sheet URL'];
     const rows = projectData.map((p, i) => [
-      i + 1,  // S.No
+      i + 1,
       p.projectTitle,
       p.customerName,
       p.channel,
@@ -179,7 +177,6 @@
       p.goLiveDate,
       p.sheetUrl || ''
     ]);
-
 
     let csv = headers.join(',') + '\n' + rows.map(r => r.map(field => `"${field}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
