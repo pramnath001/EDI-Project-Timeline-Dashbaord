@@ -65,7 +65,7 @@
   <table id="historyTable">
     <thead>
       <tr>
-        <th>S.No</th>
+        <th>#</th>
         <th>Project Title</th>
         <th>Customer</th>
         <th>Channel</th>
@@ -128,8 +128,8 @@
         </td>
         <td>
           ${entry.chartImage ? `
-            <button class="view-btn" onclick="viewChart('${entry.chartImage}')">View</button>
-            <button class="view-btn" onclick="downloadChart('${entry.chartImage}', 'Chart_${safeTitle}.png')">Download</button>
+            <button class="view-btn" onclick="viewChart('${encodeURIComponent(entry.chartImage)}')">View</button>
+            <button class="view-btn" onclick="downloadChart('${encodeURIComponent(entry.chartImage)}', 'Chart_${safeTitle}.png')">Download</button>
           ` : ''}
         </td>
         <td>${entry.modifiedAt || ''}</td>
@@ -138,14 +138,16 @@
     });
   }
 
-  function viewChart(base64) {
+  function viewChart(encodedBase64) {
+    const base64 = decodeURIComponent(encodedBase64);
     const win = window.open();
     win.document.write(`<img src="${base64}" style="width:100%;" />`);
   }
 
-  function downloadChart(base64Data, filename) {
+  function downloadChart(encodedBase64, filename) {
+    const base64 = decodeURIComponent(encodedBase64);
     const a = document.createElement('a');
-    a.href = base64Data;
+    a.href = base64;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
@@ -165,9 +167,8 @@
   }
 
   function exportCSV() {
-    const headers = ['S.No''Project Title', 'Customer', 'Channel', 'EDI Docs', 'Start Date', 'Go-Live Date', 'Sheet URL'];
+    const headers = ['Project Title', 'Customer', 'Channel', 'EDI Docs', 'Start Date', 'Go-Live Date', 'Sheet URL'];
     const rows = projectData.map(p => [
-	  p.S.No,
       p.projectTitle,
       p.customerName,
       p.channel,
