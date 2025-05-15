@@ -21,7 +21,7 @@
       color: #004080;
     }
     .status-select {
-      font-weight: bold;
+      font-weight: bold;ZKWsbciadu
       border: none;
       padding: 8px;
       border-radius: 4px;
@@ -357,7 +357,22 @@ function validateDates(startDates, endDates) {
   return errors;
 }
 
+
+// Define this BEFORE createTimelineChart()
+function getStatusColor(status) {
+  switch (status) {
+    case 'In Progress': return '#007bff';
+    case 'Pending': return '#ffc107';
+    case 'Follow up Required': return '#dc3545';
+    case 'Closed': return '#28a745';
+    default: return '#6c757d';
+  }
+}
 // Create timeline chart
+function createTimelineChart(phaseData) {
+  // ...
+}
+
 function createTimelineChart(phaseData) {
   try {
     const ctx = document.getElementById('timelineChart').getContext('2d');
