@@ -361,7 +361,7 @@ function validateDates(startDates, endDates) {
 // Define this BEFORE createTimelineChart()
 function createTimelineChart(timelineData) {
   try {
-    const ctx = document.getElementById('timelineChart');
+    const ctx = document.getElementById('timelineChart').getContext('2d');
     if (!ctx) throw new Error("Canvas element not found");
 
     if (timelineChart instanceof Chart) {
