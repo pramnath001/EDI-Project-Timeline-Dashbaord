@@ -361,40 +361,33 @@ function validateDates(startDates, endDates) {
 function createTimelineChart(phaseData) {
   try {
     const ctx = document.getElementById('timelineChart').getContext('2d');
-    
+
     if (timelineChart) {
       timelineChart.destroy();
     }
-
-    const backgroundColors = phaseData.map(p => {
-      switch (p.status) {
-        case 'In Progress': return '#007bff';
-        case 'Pending': return '#ffc107';
-        case 'Follow up Required': return '#dc3545';
-        case 'Closed': return '#28a745';
-        default: return '#6c757d';
-      }
-    });
 
     const bars = phaseData.map(p => ({
       x: [p.start, p.end],
       y: p.label,
       backgroundColor: getStatusColor(p.status)
-	}));
+    }));
 
-		data: {
-		  datasets: [{
-			label: 'Project Timeline',
-			data: bars, // bars contains objects with {x, y}
-			parsing: {
-			  xAxisKey: 'x',
-			  yAxisKey: 'y'
-			},
-			backgroundColor: bars.map(p => p.backgroundColor),
-			borderSkipped: false,
-			barPercentage: 0.6
-		  }]
-		},
+    timelineChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: phaseData.map(p => p.label),  // ✅ Important: required even if unused
+        datasets: [{
+          label: 'Project Timeline',
+          data: bars,
+          parsing: {
+            xAxisKey: 'x',
+            yAxisKey: 'y'
+          },
+          backgroundColor: bars.map(p => p.backgroundColor),
+          borderSkipped: false,
+          barPercentage: 0.6
+        }]
+      },
       options: {
         indexAxis: 'y',
         responsive: true,
@@ -402,7 +395,7 @@ function createTimelineChart(phaseData) {
         scales: {
           x: {
             type: 'time',
-            position: 'bottom',  // <-- Date axis at bottom
+            position: 'bottom',
             time: {
               unit: 'day',
               tooltipFormat: 'MMM dd',
@@ -414,20 +407,12 @@ function createTimelineChart(phaseData) {
               display: true,
               text: 'Timeline'
             },
-            grid: {
-              display: true
-            }
+            grid: { display: true }
           },
           y: {
-            title: {
-              display: false
-            },
-            ticks: {
-              autoSkip: false
-            },
-            grid: {
-              display: false
-            }
+            title: { display: false },
+            ticks: { autoSkip: false },
+            grid: { display: false }
           }
         },
         plugins: {
@@ -445,9 +430,7 @@ function createTimelineChart(phaseData) {
               }
             }
           },
-          legend: {
-            display: false
-          }
+          legend: { display: false }
         }
       }
     });
