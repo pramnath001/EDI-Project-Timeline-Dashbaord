@@ -440,34 +440,36 @@
   }
 
 	  // Init on load
-	  document.addEventListener('DOMContentLoaded', function () {
-		applyDynamicStyling();
+		document.addEventListener('DOMContentLoaded', function () {
+		  applyDynamicStyling();
 
-		// Set default dates
-		const today = new Date().toISOString().split('T')[0];
-		const startDateInput = document.querySelector('input[name="startDate"]');
-		if (startDateInput) startDateInput.value = today;
+		  // Set default start & go-live date
+		  const today = new Date();
+		  const todayStr = today.toISOString().split('T')[0];
 
-		const futureDate = new Date();
-		futureDate.setDate(futureDate.getDate() + 30);
-		const goLiveDateInput = document.querySelector('input[name="goLiveDate"]');
-		if (goLiveDateInput) goLiveDateInput.value = futureDate.toISOString().split('T')[0];
+		  const goLiveDate = new Date();
+		  goLiveDate.setDate(goLiveDate.getDate() + 30);
+		  const goLiveStr = goLiveDate.toISOString().split('T')[0];
 
-		for (let i = 1; i <= 7; i++) {
-		  const startDate = new Date();
-		  startDate.setDate(startDate.getDate() + (i - 1) * 4);
-		  const endDate = new Date(startDate);
-		  endDate.setDate(endDate.getDate() + 3);
+		  document.querySelector('input[name="startDate"]').value = todayStr;
+		  document.querySelector('input[name="goLiveDate"]').value = goLiveStr;
 
-		  const phaseStartInput = document.querySelector(`input[name="phase_start_${i}"]`);
-		  const phaseEndInput = document.querySelector(`input[name="phase_end_${i}"]`);
+		  // Set default values for each phase
+		  for (let i = 1; i <= 7; i++) {
+			const start = new Date(today);
+			start.setDate(start.getDate() + (i - 1) * 4);
 
-		  if (phaseStartInput && phaseEndInput) {
-			phaseStartInput.value = startDate.toISOString().split('T')[0];
-			phaseEndInput.value = endDate.toISOString().split('T')[0];
+			const end = new Date(start);
+			end.setDate(end.getDate() + 3);
+
+			const startInput = document.querySelector(`input[name="phase_start_${i}"]`);
+			const endInput = document.querySelector(`input[name="phase_end_${i}"]`);
+
+			if (startInput) startInput.value = start.toISOString().split('T')[0];
+			if (endInput) endInput.value = end.toISOString().split('T')[0];
 		  }
-		}
-	  });
+		});
+
 </script>
 </body>
 </html>
