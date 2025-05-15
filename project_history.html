@@ -65,7 +65,7 @@
   <table id="historyTable">
     <thead>
       <tr>
-        <th>#</th>
+        <th>S.No</th>
         <th>Project Title</th>
         <th>Customer</th>
         <th>Channel</th>
@@ -128,10 +128,11 @@
         </td>
         <td>
           ${entry.chartImage ? `
-            <button class="view-btn" onclick="viewChart('${encodeURIComponent(entry.chartImage)}')">View</button>
-            <button class="view-btn" onclick="downloadChart('${encodeURIComponent(entry.chartImage)}', 'Chart_${safeTitle}.png')">Download</button>
+            <button class="view-btn" onclick="viewChart(&quot;${encodeURIComponent(entry.chartImage)}&quot;)">View</button>
+            <button class="view-btn" onclick="downloadChart(&quot;${encodeURIComponent(entry.chartImage)}&quot;, &quot;Chart_${safeTitle}.png&quot;)">Download</button>
           ` : ''}
         </td>
+
         <td>${entry.modifiedAt || ''}</td>
       `;
       tbody.appendChild(row);
