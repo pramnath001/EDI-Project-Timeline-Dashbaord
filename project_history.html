@@ -168,8 +168,9 @@
   }
 
   function exportCSV() {
-    const headers = ['Project Title', 'Customer', 'Channel', 'EDI Docs', 'Start Date', 'Go-Live Date', 'Sheet URL'];
-    const rows = projectData.map(p => [
+    const headers = ['S.No','Project Title', 'Customer', 'Channel', 'EDI Docs', 'Start Date', 'Go-Live Date', 'Sheet URL'];
+    const rows = projectData.map((p, i) => [
+      i + 1,  // S.No
       p.projectTitle,
       p.customerName,
       p.channel,
@@ -178,6 +179,7 @@
       p.goLiveDate,
       p.sheetUrl || ''
     ]);
+
 
     let csv = headers.join(',') + '\n' + rows.map(r => r.map(field => `"${field}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
