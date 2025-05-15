@@ -365,92 +365,93 @@ function getStatusColor(status) {
     case 'Pending': return '#ffc107';
     case 'Follow up Required': return '#dc3545';
     case 'Closed': return '#28a745';
-    default: return '#6c757d';
+    default: return '#6c757d'; // Open or unknown
   }
 }
-// Create timeline chart
-function createTimelineChart(phaseData) {
-  try {
-    const ctx = document.getElementById('timelineChart').getContext('2d');
-    
-    // Destroy previous chart if exists
-    if (timelineChart) {
-      timelineChart.destroy();
-    }
-    
-    // Prepare chart data
-    const datasets = phaseData.map(phase => {
-      return {
-        label: phase.label,
-        data: [{
-          x: phase.start,
-          y: phase.label,
-          x2: phase.end
-        }],
-        backgroundColor: getStatusColor(phase.status),
-        borderColor: '#000',
-        borderWidth: 1,
-        borderSkipped: false,
-        barPercentage: 0.8
-      };
-    });
-    
-    timelineChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        datasets: datasets
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        scales: {
-          x: {
-            type: 'time',
-            time: {
-              unit: 'day',
-              displayFormats: {
-                day: 'MMM d'
-              }
-            },
-            min: new Date(Math.min(...phaseData.map(p => p.start.getTime())) - (3 * 24 * 60 * 60 * 1000)),
-            max: new Date(Math.max(...phaseData.map(p => p.end.getTime())) + (3 * 24 * 60 * 60 * 1000)),
-            position: 'top'
-          },
-          y: {
-            stacked: false,
-            grid: {
-              display: false
+
+function createTimelineChart(timelineData) {
+  const ctx = document.getElementById("timelineChart").getContext("2d");
+  if (timelineChart) {
+    timelineChart.destroy();
+  }
+
+  const data = {
+    labels: timelineData.map(d => d.label).reverse(), // Phase 1 bottom, 7 top
+    datasets: [{
+      label: 'Phase Duration',
+      data: timelineData.map(d => ({
+        x: [d.start, d.end],
+        y: d.label
+      })).reverse(),
+      backgroundColor: timelineData.map(d => getStatusColor(d.status)).reverse(),
+      borderRadius: 4
+    }]
+  };
+
+  timelineChart = new Chart(ctx, {
+    type: 'bar',
+    data: data,
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          type: 'time',
+          position: 'bottom',
+          time: {
+            unit: 'day',
+            displayFormats: {
+              day: 'MMM d'
             }
+          },
+          title: {
+            display: true,
+            text: 'Date'
           }
         },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const phase = phaseData[context.dataIndex];
-                return [
-                  `Start: ${phase.start.toLocaleDateString()}`,
-                  `End: ${phase.end.toLocaleDateString()}`,
-                  `Duration: ${phase.duration} days`,
-                  `Status: ${phase.status}`,
-                  `Owner: ${phase.owner}`
-                ];
-              }
-            }
+        y: {
+          title: {
+            display: true,
+            text: 'Project Phase'
           },
-          legend: {
-            display: false
+          reverse: true // Phase 1 at bottom
+        }
+      },
+      plugins: {
+        datalabels: {
+          align: 'center',
+          anchor: 'center',
+          color: 'white',
+          formatter: (value) => {
+            const start = new Date(value.x[0]);
+            const end = new Date(value.x[1]);
+            const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            return `${duration} days`;
+          },
+          font: {
+            weight: 'bold'
+          }
+        },
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              const start = new Date(ctx.raw.x[0]);
+              const end = new Date(ctx.raw.x[1]);
+              const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+              return `${ctx.raw.y}: ${start.toDateString()} – ${end.toDateString()} (${duration} days)`;
+            }
           }
         }
       }
-    });
-    
-    return true;
-  } catch (error) {
-    console.error("Error creating timeline chart:", error);
-    return false;
-  }
+    },
+    plugins: [ChartDataLabels]
+  });
+
+  return true;
 }
+
 
 
 // Generate Excel file as fallback
