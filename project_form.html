@@ -353,22 +353,23 @@
             title: { display: true, text: 'Timeline' },
 			grid: { drawOnChartArea: false }
           },
-           y: {
-            type: 'linear',
-            ticks: {
-              stepSize: 1,
-              callback: function (value) {
-                return timelineData[value]?.label || '';
-              }
-            },
-            min: -0.5,
-            max: timelineData.length - 0.5,
-            title: { display: true, text: 'Phases' },
-            grid: {
-              drawTicks: false,
-              drawBorder: false
-            }
-          }
+			y: {
+			  type: 'linear',
+			  offset: true, // ✅ Add this line
+			  ticks: {
+				stepSize: 1,
+				callback: function (value) {
+				  return timelineData[value]?.label || '';
+				}
+			  },
+			  min: -0.5,
+			  max: timelineData.length - 0.5,
+			  title: { display: true, text: 'Phases' },
+			  grid: {
+				drawTicks: false,
+				drawBorder: false
+			  }
+			}
         },
         plugins: {
           legend: { display: false },
