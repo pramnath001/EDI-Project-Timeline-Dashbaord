@@ -305,98 +305,124 @@
     let timelineChart = null;
 
     // Function to create/update the timeline chart
-    function createTimelineChart(timelineData) {
-  try {
-    const ctx = document.getElementById('timelineChart');
-    if (!ctx) throw new Error("Canvas element not found");
+	
+	const weekendBackgroundPlugin = {
+	  id: 'weekendHighlighter',
+	  beforeDraw(chart, args, options) {
+		const { ctx, chartArea: { top, bottom, left, right }, scales: { x } } = chart;
 
-    if (timelineChart instanceof Chart) {
-      timelineChart.destroy();
-    }
+		const start = new Date(x.min);
+		const end = new Date(x.max);
+		const dayMS = 24 * 60 * 60 * 1000;
 
-    // Generate a dataset per phase as a horizontal bar using a line segment
+		for (let d = new Date(start); d <= end; d = new Date(d.getTime() + dayMS)) {
+		  const day = d.getDay();
+		  if (day === 0 || day === 6) {
+			const xStart = x.getPixelForValue(d);
+			const xEnd = x.getPixelForValue(new Date(d.getTime() + dayMS));
+			ctx.fillStyle = '#f3f3f3'; // light grey
+			ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
+		  }
+		}
+	  }
+	};
+
+	function createTimelineChart(timelineData) {
+	  try {
+		const ctx = document.getElementById('timelineChart');
+		if (!ctx) throw new Error("Canvas element not found");
+
+		if (timelineChart instanceof Chart) {
+		  timelineChart.destroy();
+		}
+
 		const colors = ['#007bff', '#17a2b8', '#ffc107', '#28a745', '#fd7e14', '#6f42c1', '#dc3545'];
 
-		const datasets = timelineData.map((phase, i) => ({
-		  label: phase.label,
-		  data: [
-			{ x: phase.start, y: i },
-			{ x: phase.end, y: i }
-		  ],
-		  borderColor: colors[i % colors.length],
-		  backgroundColor: colors[i % colors.length],
-		  borderWidth: 12, // thicker line
-		  showLine: true,
-		  tension: 0
-		}));
+		const labels = timelineData.map(p => p.label);
+		const startDates = timelineData.map(p => p.start.getTime());
+		const durations = timelineData.map(p => p.end.getTime() - p.start.getTime());
 
+		const datasets = [{
+		  label: 'Phase Duration',
+		  data: timelineData.map((phase, i) => ({
+			x: [phase.start, phase.end],
+			y: phase.label
+		  })),
+		  backgroundColor: colors,
+		  borderRadius: 6,
+		  borderSkipped: false,
+		}];
 
-    const config = {
-      type: 'line',
-      data: { datasets },
-      options: {
-        responsive: true,
-		maintainAspectRatio: false,
-        layout: {
-          padding: { top: 0, bottom: 0 }
-        },
-        scales: {
-          x: {
-            type: 'time',
-            position: 'bottom',
-			time: {
-              unit: 'day',
-              displayFormats: {
-              day: 'MMM d'
-              }
-              },
-            title: { display: true, text: 'Timeline' },
-			grid: { drawOnChartArea: false }
-          },
-			y: {
-			  type: 'linear',
-			  offset: true, // ✅ Add this line
-			  ticks: {
-				stepSize: 1,
-				callback: function (value) {
-				  return timelineData[value]?.label || '';
-				}
+		const transformedData = {
+		  labels: labels,
+		  datasets: [{
+			label: 'Project Phases',
+			data: timelineData.map((phase, i) => ({
+			  x: phase.start.getTime(),
+			  x2: phase.end.getTime(),
+			  y: phase.label
+			})),
+			backgroundColor: colors,
+			borderRadius: 8,
+			borderSkipped: false,
+		  }]
+		};
+
+		const config = {
+		  type: 'bar',
+		  data: transformedData,
+		  options: {
+			indexAxis: 'y',
+			responsive: true,
+			maintainAspectRatio: false,
+			scales: {
+			  x: {
+				type: 'time',
+				time: {
+				  unit: 'day',
+				  tooltipFormat: 'MMM dd, yyyy',
+				  displayFormats: {
+					day: 'MMM d'
+				  }
+				},
+				title: {
+				  display: true,
+				  text: 'Timeline'
+				},
+				min: Math.min(...startDates) - 86400000, // padding 1 day before
+				max: Math.max(...startDates.map((start, i) => start + durations[i])) + 86400000
 			  },
-			  min: -0.5,
-			  max: timelineData.length - 0.5,
-			  title: { display: true, text: 'Phases' },
-			  grid: {
-				drawTicks: false,
-				drawBorder: false
+			  y: {
+				title: {
+				  display: true,
+				  text: 'Project Phases'
+				}
+			  }
+			},
+			plugins: {
+			  legend: { display: false },
+			  tooltip: {
+				callbacks: {
+				  label: function(context) {
+					const phase = timelineData[context.dataIndex];
+					const duration = Math.round((phase.end - phase.start) / (1000 * 60 * 60 * 24));
+					return ${phase.label}: ${phase.start.toLocaleDateString()} - ${phase.end.toLocaleDateString()} (${duration} days);
+				  }
+				}
 			  }
 			}
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const phase = timelineData[ctx.datasetIndex];
-                return `${phase.label}: ${phase.start.toLocaleDateString()} – ${phase.end.toLocaleDateString()} (${Math.round(phase.duration)} days)`;
-              }
-            }
-          }
-        },
-        elements: {
-          line: {
-            borderCapStyle: 'round'
-          }
-        }
-      }
-    };
+		  },
+		  plugins: [ChartjsPluginAnnotation, weekendBackgroundPlugin] // ✅ include weekend plugin here
+		};
 
-    timelineChart = new Chart(ctx, config);
-    return true;
-  } catch (error) {
-    console.error("Chart creation failed:", error);
-    return false;
-  }
-}
+		timelineChart = new Chart(ctx, config);
+		return true;
+
+	  } catch (error) {
+		console.error("Chart creation failed:", error);
+		return false;
+	  }
+	}
 
 
     // Function to validate dates
