@@ -416,7 +416,9 @@
 		  },
 		  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin] // ✅ include weekend plugin here
 		};
-
+		// ✅ FIX: Set canvas height directly to stop it from growing endlessly
+		ctx.height = 500;
+		// ✅ Create chart after fixing height
 		timelineChart = new Chart(ctx, config);
 		return true;
 
