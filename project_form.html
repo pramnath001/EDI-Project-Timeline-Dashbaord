@@ -741,7 +741,7 @@
 		  startDateInput.value = today;
 
 		  // Auto-calculate all dates
-		  autoCalculatePhaseDates(today);
+		  autoCalculatePhaseDates(new Date(today));
 
 		  // Recalculate if user changes start date
 		  startDateInput.addEventListener("change", function () {
