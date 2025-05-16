@@ -414,7 +414,7 @@
 			  }
 			}
 		  },
-		  plugins: [ChartjsPluginAnnotation, weekendBackgroundPlugin] // ✅ include weekend plugin here
+		  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin] // ✅ include weekend plugin here
 		};
 
 		timelineChart = new Chart(ctx, config);
