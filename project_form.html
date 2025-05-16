@@ -642,6 +642,56 @@
         updateOwnerColor();
       });
     }
+	
+			function addWeekdays(startDate, daysToAdd) {
+		  const result = new Date(startDate);
+		  let addedDays = 0;
+		  while (addedDays < daysToAdd) {
+			result.setDate(result.getDate() + 1);
+			const day = result.getDay();
+			if (day !== 0 && day !== 6) { // Skip Sunday (0) and Saturday (6)
+			  addedDays++;
+			}
+		  }
+		  return result;
+		}
+
+		function autoCalculatePhaseDates(startDateStr) {
+		  const startDate = new Date(startDateStr);
+		  const phaseOffsets = [
+			[0, 6],    // Week 1: Requirement Gathering
+			[7, 13],   // Week 2: Connectivity Setup
+			[14, 27],  // Week 3-4: EDI Mapping Development
+			[28, 34],  // Week 5: Internal Testing (QA)
+			[35, 41],  // Week 6: Customer Testing (UAT)
+			[42, 48],  // Week 7: Go-Live Preparation
+			[49, 55]   // Week 8: Go-Live & Hypercare
+		  ];
+
+		  for (let i = 0; i < phaseOffsets.length; i++) {
+			const [offsetStart, offsetEnd] = phaseOffsets[i];
+			const phaseStart = addWeekdays(startDate, offsetStart);
+			const phaseEnd = addWeekdays(startDate, offsetEnd);
+
+
+			const startInput = document.querySelector(`input[name="phase_start_${i+1}"]`);
+			const endInput = document.querySelector(`input[name="phase_end_${i+1}"]`);
+
+			if (startInput && endInput) {
+			  startInput.value = phaseStart.toISOString().split("T")[0];
+			  endInput.value = phaseEnd.toISOString().split("T")[0];
+			}
+		  }
+
+		  // Auto-set Go-Live Date (2 months from start)
+		  const goLiveDate = new Date(startDate);
+		  goLiveDate.setMonth(goLiveDate.getMonth() + 2);
+		  const goLiveInput = document.querySelector('input[name="goLiveDate"]');
+		  if (goLiveInput) {
+			goLiveInput.value = goLiveDate.toISOString().split("T")[0];
+		  }
+		}
+
 
 	// Initialize on load
 	document.addEventListener('DOMContentLoaded', function() {
@@ -649,35 +699,21 @@
 	 
 	  
 	  // Set default dates
-	  const today = new Date().toISOString().split('T')[0];
-	  const startDateInput = document.querySelector('input[name="startDate"]');
-	  if (startDateInput) {
-		startDateInput.value = today;
-	  }
-	  
-	  // Set go-live date to 30 days from now
-	  const futureDate = new Date();
-	  futureDate.setDate(futureDate.getDate() + 30);
-	  const goLiveDateInput = document.querySelector('input[name="goLiveDate"]');
-	  if (goLiveDateInput) {
-		goLiveDateInput.value = futureDate.toISOString().split('T')[0];
-	  }
-	  
-	  // Set phase dates
-	  for (let i = 1; i <= 7; i++) {
-		const startDate = new Date();
-		startDate.setDate(startDate.getDate() + (i-1)*4);
-		const endDate = new Date(startDate);
-		endDate.setDate(endDate.getDate() + 3);
-		
-		const phaseStartInput = document.querySelector(`input[name="phase_start_${i}"]`);
-		const phaseEndInput = document.querySelector(`input[name="phase_end_${i}"]`);
-		
-		if (phaseStartInput && phaseEndInput) {
-		  phaseStartInput.value = startDate.toISOString().split('T')[0];
-		  phaseEndInput.value = endDate.toISOString().split('T')[0];
+		const startDateInput = document.querySelector('input[name="startDate"]');
+		if (startDateInput) {
+		  // Set today's date initially
+		  const today = new Date().toISOString().split("T")[0];
+		  startDateInput.value = today;
+
+		  // Auto-calculate all dates
+		  autoCalculatePhaseDates(today);
+
+		  // Recalculate if user changes start date
+		  startDateInput.addEventListener("change", function () {
+			autoCalculatePhaseDates(this.value);
+		  });
 		}
-	  }
+
 	});
   </script>
 </body>
