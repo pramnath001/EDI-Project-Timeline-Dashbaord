@@ -111,6 +111,11 @@
         grid-template-columns: 1fr;
       }
     }
+	#timelineChart {
+	  max-height: 500px;
+	  display: block;
+	}
+
   </style>
 </head>
 <body>
@@ -287,7 +292,7 @@
     <div class="container">
       <div class="form-section phase-section">
         <h3>Timeline Overview</h3>
-        <canvas id="timelineChart" width="1200" height="500" style="width:100%; max-height:500px;"></canvas>
+        <canvas id="timelineChart" style="display:block; width:100%; height:500px;"></canvas>
         <button id="downloadChart" style="margin-top:15px;">📥 Download Timeline Chart as Image</button>
         <div id="timelineSummary" style="margin-top: 20px; font-size: 14px;"></div>
       </div>
@@ -415,9 +420,7 @@
 			}
 		  },
 		  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin] // ✅ include weekend plugin here
-		};
-		// ✅ FIX: Set canvas height directly to stop it from growing endlessly
-		ctx.height = 500;
+		}
 		// ✅ Create chart after fixing height
 		timelineChart = new Chart(ctx, config);
 		return true;
