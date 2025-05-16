@@ -692,7 +692,7 @@
 		}
 
 		function autoCalculatePhaseDates(startDateStr) {
-		  const startDate = new Date(startDateStr);
+		  const startDate = new Date(`${startDateStr}T00:00:00`);
 		  const phaseOffsets = [
 			[0, 6],    // Week 1: Requirement Gathering
 			[7, 13],   // Week 2: Connectivity Setup
@@ -741,7 +741,7 @@
 		  startDateInput.value = today;
 
 		  // Auto-calculate all dates
-		  autoCalculatePhaseDates(new Date(today));
+		  autoCalculatePhaseDates(today);  // ← pass the ISO string, NOT a Date object
 
 		  // Recalculate if user changes start date
 		  startDateInput.addEventListener("change", function () {
