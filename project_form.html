@@ -325,9 +325,9 @@
 		  ],
 		  borderColor: colors[i % colors.length],
 		  backgroundColor: colors[i % colors.length],
-		  borderWidth: 8,
+		  borderWidth: 12, // thicker line
 		  showLine: true,
-		  pointRadius: 0
+		  tension: 0
 		}));
 
 
@@ -336,6 +336,10 @@
       data: { datasets },
       options: {
         responsive: true,
+		maintainAspectRatio: false,
+        layout: {
+          padding: { top: 0, bottom: 0 }
+        },
         scales: {
           x: {
             type: 'time',
@@ -346,19 +350,24 @@
               day: 'MMM d'
               }
               },
-            title: { display: true, text: 'Timeline' }
+            title: { display: true, text: 'Timeline' },
+			grid: { drawOnChartArea: false }
           },
-          y: {
+           y: {
             type: 'linear',
             ticks: {
+              stepSize: 1,
               callback: function (value) {
                 return timelineData[value]?.label || '';
-              },
-              stepSize: 1
+              }
             },
+            min: -0.5,
+            max: timelineData.length - 0.5,
             title: { display: true, text: 'Phases' },
-            min: -1,
-            max: timelineData.length
+            grid: {
+              drawTicks: false,
+              drawBorder: false
+            }
           }
         },
         plugins: {
@@ -374,7 +383,6 @@
         },
         elements: {
           line: {
-            tension: 0,
             borderCapStyle: 'round'
           }
         }
