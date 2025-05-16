@@ -406,7 +406,7 @@
 				  label: function(context) {
 					const phase = timelineData[context.dataIndex];
 					const duration = Math.round((phase.end - phase.start) / (1000 * 60 * 60 * 24));
-					return ${phase.label}: ${phase.start.toLocaleDateString()} - ${phase.end.toLocaleDateString()} (${duration} days);
+					return `${phase.label}: ${phase.start.toLocaleDateString()} - ${phase.end.toLocaleDateString()} (${duration} days)`;
 				  }
 				}
 			  }
