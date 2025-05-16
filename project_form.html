@@ -349,29 +349,17 @@
 		const startDates = timelineData.map(p => p.start.getTime());
 		const durations = timelineData.map(p => p.end.getTime() - p.start.getTime());
 
-		const datasets = [{
-		  label: 'Phase Duration',
-		  data: timelineData.map((phase, i) => ({
-			x: [phase.start, phase.end],
-			y: phase.label
-		  })),
-		  backgroundColor: colors,
-		  borderRadius: 6,
-		  borderSkipped: false,
-		}];
 
 		const transformedData = {
-		  labels: labels,
 		  datasets: [{
 			label: 'Project Phases',
-			data: timelineData.map((phase, i) => ({
-			  x: phase.start.getTime(),
-			  x2: phase.end.getTime(),
+			data: timelineData.map(phase => ({
+			  x: [phase.start.getTime(), phase.end.getTime()],
 			  y: phase.label
 			})),
 			backgroundColor: colors,
 			borderRadius: 8,
-			borderSkipped: false,
+			borderSkipped: false
 		  }]
 		};
 
@@ -382,32 +370,21 @@
 			indexAxis: 'y',
 			responsive: true,
 			maintainAspectRatio: false,
+			parsing: false, // ✅ required for x: [start, end]
 			scales: {
 			  x: {
-				type: 'time',
-				time: {
-				  unit: 'day',
-				  tooltipFormat: 'MMM dd, yyyy',
-				  displayFormats: {
-					day: 'MMM d'
-				  }
-				},
-				title: {
-				  display: true,
-				  text: 'Timeline'
-				},
-				min: Math.min(...startDates) - 86400000, // padding 1 day before
-				max: Math.max(...startDates.map((start, i) => start + durations[i])) + 86400000
+				type: 'linear',
+				position: 'bottom',
+				title: { display: true, text: 'Timeline' },
+				min: Math.min(...startDates),
+				max: Math.max(...startDates.map((s, i) => s + durations[i]))
 			  },
 			  y: {
-				title: {
-				  display: true,
-				  text: 'Project Phases'
-				}
+				reverse: true,
+				title: { display: true, text: 'Project Phases' }
 			  }
 			},
 			plugins: {
-			  legend: { display: false },
 			  tooltip: {
 				callbacks: {
 				  label: function(context) {
@@ -419,8 +396,9 @@
 			  }
 			}
 		  },
-		  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin] // ✅ include weekend plugin here
-		}
+		  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin] // ✅ Fix comma before this
+		};
+
 		// ✅ Create chart after fixing height
 		timelineChart = new Chart(ctx, config);
 		return true;
