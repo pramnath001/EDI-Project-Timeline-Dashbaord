@@ -715,6 +715,56 @@
 		}
 
 	});
+
+// Duration in weekdays for each phase
+const phaseDurations = [7, 7, 14, 7, 7, 7, 7]; // customizable per phase
+
+function reflowPhasesFrom(startPhaseIndex) {
+  const totalPhases = phaseDurations.length;
+
+  let baseEndDate = new Date(document.querySelector(`input[name="phase_end_${startPhaseIndex}"]`).value);
+  if (isNaN(baseEndDate)) {
+    // fallback to start date + duration if end is invalid
+    const baseStartDate = new Date(document.querySelector(`input[name="phase_start_${startPhaseIndex}"]`).value);
+    baseEndDate = addWeekdays(baseStartDate, phaseDurations[startPhaseIndex - 1] - 1);
+  }
+
+  for (let i = startPhaseIndex + 1; i <= totalPhases; i++) {
+    const newStart = addWeekdays(baseEndDate, 1);
+    const newEnd = addWeekdays(newStart, phaseDurations[i - 1] - 1);
+
+    const startInput = document.querySelector(`input[name="phase_start_${i}"]`);
+    const endInput = document.querySelector(`input[name="phase_end_${i}"]`);
+
+    if (startInput && endInput) {
+      startInput.value = newStart.toISOString().split("T")[0];
+      endInput.value = newEnd.toISOString().split("T")[0];
+    }
+
+    baseEndDate = newEnd;
+  }
+
+  // Update Go-Live Date to final end date
+  const goLiveInput = document.querySelector('input[name="goLiveDate"]');
+  if (goLiveInput) {
+    goLiveInput.value = baseEndDate.toISOString().split("T")[0];
+  }
+}
+// Attach reflow logic to all phase date fields on load
+document.addEventListener("DOMContentLoaded", function () {
+  const totalPhases = phaseDurations.length;
+  for (let i = 1; i <= totalPhases; i++) {
+    const startInput = document.querySelector(`input[name="phase_start_${i}"]`);
+    const endInput = document.querySelector(`input[name="phase_end_${i}"]`);
+    if (startInput) {
+      startInput.addEventListener("change", () => reflowPhasesFrom(i));
+    }
+    if (endInput) {
+      endInput.addEventListener("change", () => reflowPhasesFrom(i));
+    }
+  }
+});
+
   </script>
 </body>
 </html>
