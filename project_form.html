@@ -305,6 +305,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+
 
 
  <script>
@@ -334,85 +336,84 @@
 	  }
 	};
 
-	function createTimelineChart(timelineData) {
-	  try {
-		const ctx = document.getElementById('timelineChart');
-		if (!ctx) throw new Error("Canvas element not found");
+		function createTimelineChart(timelineData) {
+		  try {
+			const ctx = document.getElementById('timelineChart');
+			if (!ctx) throw new Error("Canvas element not found");
 
-		if (timelineChart instanceof Chart) {
-		  timelineChart.destroy();
-		}
-
-		const colors = ['#007bff', '#17a2b8', '#ffc107', '#28a745', '#fd7e14', '#6f42c1', '#dc3545'];
-
-		const labels = timelineData.map(p => p.label);
-		const startDates = timelineData.map(p => p.start.getTime());
-		const durations = timelineData.map(p => p.end.getTime() - p.start.getTime());
-
-
-		const transformedData = {
-		  datasets: [{
-			label: 'Project Phases',
-			data: timelineData.map(phase => ({
-			  x: phase.start.getTime(),     // ✅ Single value for x (start)
-			  x2: phase.end.getTime(),      // ✅ Add x2 for end
-			  y: phase.label
-			})),
-			backgroundColor: colors,
-			borderRadius: 8,
-			borderSkipped: false,
-			parsing: {
-			  xAxisKey: 'x',
-			  x2AxisKey: 'x2',
-			  yAxisKey: 'y'
+			if (timelineChart instanceof Chart) {
+			  timelineChart.destroy();
 			}
-		  }]
-		};
 
-		const config = {
-		  type: 'bar',
-		  data: transformedData,
-		  options: {
-			indexAxis: 'y', // ✅ Horizontal bars
-			responsive: true,
-			maintainAspectRatio: false,
-			scales: {
-			  x: {
-				type: 'linear',
-				position: 'bottom',
-				title: { display: true, text: 'Timeline' },
-				min: Math.min(...startDates),
-				max: Math.max(...startDates.map((s, i) => s + durations[i]))
-			  },
-			  y: {
-				reverse: true, // ✅ Puts earliest phase at bottom
-				title: { display: true, text: 'Project Phases' }
-			  }
-			},
-			plugins: {
-			  tooltip: {
-				callbacks: {
-				  label: function(context) {
-					const phase = timelineData[context.dataIndex];
-					const duration = Math.round((phase.end - phase.start) / (1000 * 60 * 60 * 24));
-					return `${phase.label}: ${phase.start.toLocaleDateString()} - ${phase.end.toLocaleDateString()} (${duration} days)`;
+			const colors = ['#007bff', '#17a2b8', '#ffc107', '#28a745', '#fd7e14', '#6f42c1', '#dc3545'];
+
+			const transformedData = {
+			  datasets: [{
+				label: 'Project Phases',
+				data: timelineData.map((phase, i) => ({
+				  x: phase.start,
+				  x2: phase.end,
+				  y: phase.label
+				})),
+				backgroundColor: colors,
+				borderRadius: 8,
+				borderSkipped: false,
+				parsing: {
+				  xAxisKey: 'x',
+				  x2AxisKey: 'x2',
+				  yAxisKey: 'y'
+				}
+			  }]
+			};
+
+			const config = {
+			  type: 'bar',
+			  data: transformedData,
+			  options: {
+				indexAxis: 'y',
+				responsive: true,
+				maintainAspectRatio: false,
+				parsing: false,
+				scales: {
+				  x: {
+					type: 'time',
+					position: 'bottom',
+					title: { display: true, text: 'Timeline' },
+					time: {
+					  unit: 'day',
+					  tooltipFormat: 'MMM d, yyyy',
+					  displayFormats: { day: 'MMM d' }
+					}
+				  },
+				  y: {
+					reverse: true, // ✅ This makes phases display from BOTTOM to TOP
+					title: { display: true, text: 'Project Phases' }
+				  }
+				},
+				plugins: {
+				  tooltip: {
+					callbacks: {
+					  label: function(context) {
+						const phase = timelineData[context.dataIndex];
+						const duration = Math.round((phase.end - phase.start) / (1000 * 60 * 60 * 24));
+						return `${phase.label}: ${phase.start.toLocaleDateString()} - ${phase.end.toLocaleDateString()} (${duration} days)`;
+					  }
+					}
 				  }
 				}
-			  }
-			}
-		  },
-		  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin]
-		};
+			  },
+			  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin]
+			};
 
-		// ✅ Create chart after fixing height
-		timelineChart = new Chart(ctx, config);
-		return true;
+			timelineChart = new Chart(ctx, config);
+			return true;
 
-	  } catch (error) {
-		console.error("Chart creation failed:", error);
-		return false;
-	  }
-	}
+		  } catch (error) {
+			console.error("Chart creation failed:", error);
+			return false;
+		  }
+		}
+
 
 
     // Function to validate dates
