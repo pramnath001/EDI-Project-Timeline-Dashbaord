@@ -354,12 +354,18 @@
 		  datasets: [{
 			label: 'Project Phases',
 			data: timelineData.map(phase => ({
-			  x: [phase.start.getTime(), phase.end.getTime()],
+			  x: phase.start.getTime(),     // ✅ Single value for x (start)
+			  x2: phase.end.getTime(),      // ✅ Add x2 for end
 			  y: phase.label
 			})),
 			backgroundColor: colors,
 			borderRadius: 8,
-			borderSkipped: false
+			borderSkipped: false,
+			parsing: {
+			  xAxisKey: 'x',
+			  x2AxisKey: 'x2',
+			  yAxisKey: 'y'
+			}
 		  }]
 		};
 
@@ -367,10 +373,9 @@
 		  type: 'bar',
 		  data: transformedData,
 		  options: {
-			indexAxis: 'y',
+			indexAxis: 'y', // ✅ Horizontal bars
 			responsive: true,
 			maintainAspectRatio: false,
-			parsing: false, // ✅ required for x: [start, end]
 			scales: {
 			  x: {
 				type: 'linear',
@@ -380,7 +385,7 @@
 				max: Math.max(...startDates.map((s, i) => s + durations[i]))
 			  },
 			  y: {
-				reverse: true,
+				reverse: true, // ✅ Puts earliest phase at bottom
 				title: { display: true, text: 'Project Phases' }
 			  }
 			},
@@ -396,7 +401,7 @@
 			  }
 			}
 		  },
-		  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin] // ✅ Fix comma before this
+		  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin]
 		};
 
 		// ✅ Create chart after fixing height
