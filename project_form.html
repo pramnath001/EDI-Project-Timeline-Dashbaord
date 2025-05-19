@@ -310,6 +310,32 @@
 
 
  <script>
+ 
+     // Function to collect phase data
+    function collectPhaseData() {
+      const phases = [
+        'Requirement Gathering',
+        'Connectivity Setup',
+        'EDI Mapping Development',
+        'Internal Testing (QA)',
+        'Customer Testing (UAT)',
+        'Go-Live Preparation',
+        'Go-Live & Hypercare'
+      ];
+
+      return phases.map((phase, i) => {
+        const start = new Date(document.querySelector(`[name=phase_start_${i + 1}]`).value);
+        const end = new Date(document.querySelector(`[name=phase_end_${i + 1}]`).value);
+        const duration = (end - start) / (1000 * 60 * 60 * 24);
+        
+        return {
+          label: phase,
+          start,
+          end,
+          duration: duration > 0 ? duration : 1
+        };
+      });
+    }
     // Initialize chart variable
     let timelineChart = null;
 
@@ -433,31 +459,7 @@
       return errors;
     }
 
-    // Function to collect phase data
-    function collectPhaseData() {
-      const phases = [
-        'Requirement Gathering',
-        'Connectivity Setup',
-        'EDI Mapping Development',
-        'Internal Testing (QA)',
-        'Customer Testing (UAT)',
-        'Go-Live Preparation',
-        'Go-Live & Hypercare'
-      ];
 
-      return phases.map((phase, i) => {
-        const start = new Date(document.querySelector(`[name=phase_start_${i + 1}]`).value);
-        const end = new Date(document.querySelector(`[name=phase_end_${i + 1}]`).value);
-        const duration = (end - start) / (1000 * 60 * 60 * 24);
-        
-        return {
-          label: phase,
-          start,
-          end,
-          duration: duration > 0 ? duration : 1
-        };
-      });
-    }
 	
 	    // Save project to local storage
     function saveProjectToHistory(formData) {
