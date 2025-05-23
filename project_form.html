@@ -312,30 +312,34 @@
  <script>
  
      // Function to collect phase data
-    function collectPhaseData() {
-      const phases = [
-        'Requirement Gathering',
-        'Connectivity Setup',
-        'EDI Mapping Development',
-        'Internal Testing (QA)',
-        'Customer Testing (UAT)',
-        'Go-Live Preparation',
-        'Go-Live & Hypercare'
-      ];
+		function collectPhaseData() {
+		  const phases = [
+			'Requirement Gathering',
+			'Connectivity Setup',
+			'EDI Mapping Development',
+			'Internal Testing (QA)',
+			'Customer Testing (UAT)',
+			'Go-Live Preparation',
+			'Go-Live & Hypercare'
+		  ];
 
-      return phases.map((phase, i) => {
-        const start = new Date(document.querySelector(`[name=phase_start_${i + 1}]`).value);
-        const end = new Date(document.querySelector(`[name=phase_end_${i + 1}]`).value);
-        const duration = (end - start) / (1000 * 60 * 60 * 24);
-        
-        return {
-          label: phase,
-          start,
-          end,
-          duration: duration > 0 ? duration : 1
-        };
-      });
-    }
+		  return phases.map((phase, i) => {
+			const startStr = document.querySelector(`[name=phase_start_${i + 1}]`).value;
+			const endStr = document.querySelector(`[name=phase_end_${i + 1}]`).value;
+			const start = startStr ? new Date(startStr + 'T00:00:00') : new Date();
+			const end = endStr ? new Date(endStr + 'T00:00:00') : new Date();
+
+			const duration = Math.max(1, (end - start) / (1000 * 60 * 60 * 24));
+
+			return {
+			  label: phase,
+			  start,
+			  end,
+			  duration
+			};
+		  });
+		}
+
     // Initialize chart variable
     let timelineChart = null;
 
@@ -401,16 +405,19 @@
 				maintainAspectRatio: false,
 				parsing: false,
 				scales: {
-				  x: {
-					type: 'time',
-					position: 'bottom',
-					title: { display: true, text: 'Timeline' },
-					time: {
-					  unit: 'day',
-					  tooltipFormat: 'MMM d, yyyy',
-					  displayFormats: { day: 'MMM d' }
-					}
-				  },
+					x: {
+					  type: 'time',
+					  position: 'bottom',
+					  title: { display: true, text: 'Timeline' },
+					  time: {
+						unit: 'day',
+						tooltipFormat: 'MMM d, yyyy',
+						displayFormats: { day: 'MMM d' }
+					  },
+					  min: Math.min(...timelineData.map(p => p.start.getTime())),
+					  max: Math.max(...timelineData.map(p => p.end.getTime()))
+					},
+
 				  y: {
 					reverse: true, // ✅ This makes phases display from BOTTOM to TOP
 					title: { display: true, text: 'Project Phases' }
