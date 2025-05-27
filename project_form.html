@@ -300,7 +300,7 @@
   </form>
 
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
@@ -377,67 +377,78 @@
 
 			const colors = ['#007bff', '#17a2b8', '#ffc107', '#28a745', '#fd7e14', '#6f42c1', '#dc3545'];
 
-			const transformedData = {
-			  datasets: [{
-				  label: 'Project Phases',
-				  data: timelineData.map((phase, i) => ({
-					x: phase.start,
-					x2: phase.end,
-					y: phase.label
-				  })),
-				  backgroundColor: colors,
-				  borderRadius: 8,
-				  borderSkipped: false,
-				  parsing: {
-					xAxisKey: 'x',
-					x2AxisKey: 'x2',
-					yAxisKey: 'y'
-				  },
-				  barPercentage: 0.8,
-				  categoryPercentage: 1.0
-				}]
-			};
+			// Calculate min and max dates for the x-axis
+			const allDates = timelineData.flatMap(phase => [phase.start, phase.end]);
+			const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
+			const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+
+			// Add buffer to the min and max dates
+			minDate.setDate(minDate.getDate() - 2);
+			maxDate.setDate(maxDate.getDate() + 2);
+
+			const datasets = timelineData.map((phase, i) => ({
+			  label: phase.label,
+			  data: [{
+				x: phase.start,
+				x2: phase.end,
+				y: phase.label
+			  }],
+			  backgroundColor: colors[i],
+			  borderColor: colors[i],
+			  borderWidth: 1,
+			  borderRadius: 8,
+			  borderSkipped: false,
+			  barPercentage: 0.9,
+			  categoryPercentage: 0.8
+			}));
 
 			const config = {
 			  type: 'bar',
-			  data: transformedData,
+			  data: {
+				datasets: datasets
+			  },
 			  options: {
 				indexAxis: 'y',
 				responsive: true,
 				maintainAspectRatio: false,
-				parsing: false,
 				scales: {
-					x: {
-					  type: 'time',
-					  position: 'bottom',
-					  title: { display: true, text: 'Timeline' },
-					  time: {
-						unit: 'day',
-						tooltipFormat: 'MMM d, yyyy',
-						displayFormats: { day: 'MMM d' }
-					  },
-					  min: Math.min(...timelineData.map(p => p.start.getTime())),
-					  max: Math.max(...timelineData.map(p => p.end.getTime()))
+				  x: {
+					type: 'time',
+					position: 'bottom',
+					title: { display: true, text: 'Timeline' },
+					time: {
+					  unit: 'day',
+					  tooltipFormat: 'MMM d, yyyy',
+					  displayFormats: { day: 'MMM d' }
 					},
-
+					min: minDate,
+					max: maxDate
+				  },
 				  y: {
-					reverse: true, // ✅ This makes phases display from BOTTOM to TOP
-					title: { display: true, text: 'Project Phases' }
+					stacked: true,
+					reverse: true,
+					title: { display: true, text: 'Project Phases' },
+					ticks: {
+					  autoSkip: false
+					}
 				  }
 				},
 				plugins: {
 				  tooltip: {
 					callbacks: {
 					  label: function(context) {
-						const phase = timelineData[context.dataIndex];
+						const phase = timelineData[context.datasetIndex];
 						const duration = Math.round((phase.end - phase.start) / (1000 * 60 * 60 * 24));
 						return `${phase.label}: ${phase.start.toLocaleDateString()} - ${phase.end.toLocaleDateString()} (${duration} days)`;
 					  }
 					}
+				  },
+				  legend: {
+					display: false
 				  }
 				}
 			  },
-			  plugins: [Chart.registry.getPlugin('annotation'), weekendBackgroundPlugin]
+			  plugins: [weekendBackgroundPlugin]
 			};
 
 			timelineChart = new Chart(ctx, config);
