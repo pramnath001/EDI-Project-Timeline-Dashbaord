@@ -585,10 +585,10 @@
 		  try {
 			const scriptUrl = 'https://script.google.com/macros/s/AKfycbynyVZcVRmC1RxwPiiYYIK8yPUWKNwV07gA6eZwDOQw0lHRBSPUKZ0_H7OYOFQXLnAl/exec';
 
-			const formBody = new URLSearchParams();
-			for (const [key, value] of Object.entries(data)) {
-			  formBody.append(key, value);
-			}
+			const formBody = Object.keys(data).map(key => 
+			  `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`
+			).join('&');
+			  
 			formBody.append("chartImage", chartImage); // ✅ Include chart image
 
 			const response = await fetch(scriptUrl, {
