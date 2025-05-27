@@ -386,31 +386,36 @@
 			minDate.setDate(minDate.getDate() - 2);
 			maxDate.setDate(maxDate.getDate() + 2);
 
-			const datasets = timelineData.map((phase, i) => ({
-			  label: phase.label,
-			  data: [{
-				x: phase.start,
-				x2: phase.end,
-				y: phase.label
-			  }],
-			  backgroundColor: colors[i],
-			  borderColor: colors[i],
+			// Create a single dataset with all phases
+			const dataset = {
+			  label: 'Project Phases',
+			  data: timelineData.map((phase, i) => ({
+				x: [phase.start, phase.end], // Array of start and end dates
+				y: phase.label,
+				duration: Math.round((phase.end - phase.start) / (1000 * 60 * 60 * 24))
+			  })),
+			  backgroundColor: colors,
+			  borderColor: colors.map(c => `${c}80`), // Slightly transparent borders
 			  borderWidth: 1,
 			  borderRadius: 8,
 			  borderSkipped: false,
-			  barPercentage: 0.9,
-			  categoryPercentage: 0.8
-			}));
+			  barPercentage: 0.8,
+			  categoryPercentage: 0.9
+			};
 
 			const config = {
 			  type: 'bar',
 			  data: {
-				datasets: datasets
+				datasets: [dataset]
 			  },
 			  options: {
 				indexAxis: 'y',
 				responsive: true,
 				maintainAspectRatio: false,
+				parsing: {
+				  xAxisKey: 'x',
+				  yAxisKey: 'y'
+				},
 				scales: {
 				  x: {
 					type: 'time',
@@ -422,10 +427,11 @@
 					  displayFormats: { day: 'MMM d' }
 					},
 					min: minDate,
-					max: maxDate
+					max: maxDate,
+					stacked: false
 				  },
 				  y: {
-					stacked: true,
+					stacked: false,
 					reverse: true,
 					title: { display: true, text: 'Project Phases' },
 					ticks: {
@@ -437,9 +443,8 @@
 				  tooltip: {
 					callbacks: {
 					  label: function(context) {
-						const phase = timelineData[context.datasetIndex];
-						const duration = Math.round((phase.end - phase.start) / (1000 * 60 * 60 * 24));
-						return `${phase.label}: ${phase.start.toLocaleDateString()} - ${phase.end.toLocaleDateString()} (${duration} days)`;
+						const phase = timelineData[context.dataIndex];
+						return `${phase.label}: ${phase.start.toLocaleDateString()} - ${phase.end.toLocaleDateString()} (${context.raw.duration} days)`;
 					  }
 					}
 				  },
