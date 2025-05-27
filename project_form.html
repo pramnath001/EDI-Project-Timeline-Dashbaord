@@ -589,7 +589,6 @@
 			  `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`
 			).join('&');
 			  
-			formBody.append("chartImage", chartImage); // ✅ Include chart image
 
 			const response = await fetch(scriptUrl, {
 			  method: 'POST',
