@@ -379,24 +379,23 @@
 
 			const transformedData = {
 			  datasets: [{
-				label: 'Project Phases',
-				data: timelineData.map((phase, i) => ({
-				  x: phase.start,
-				  x2: phase.end,
-				  y: phase.label
-				})),
-				backgroundColor: colors,
-				borderRadius: 8,
-				borderSkipped: false,
-				parsing: {
-				  xAxisKey: 'x',
-				  x2AxisKey: 'x2',
-				  yAxisKey: 'y'
-				}
-				barPercentage: 0.8,
-				categoryPercentage: 1.0,
-
-			  }]
+				  label: 'Project Phases',
+				  data: timelineData.map((phase, i) => ({
+					x: phase.start,
+					x2: phase.end,
+					y: phase.label
+				  })),
+				  backgroundColor: colors,
+				  borderRadius: 8,
+				  borderSkipped: false,
+				  parsing: {
+					xAxisKey: 'x',
+					x2AxisKey: 'x2',
+					yAxisKey: 'y'
+				  },
+				  barPercentage: 0.8,
+				  categoryPercentage: 1.0
+				}]
 			};
 
 			const config = {
@@ -448,7 +447,6 @@
 			console.error("Chart creation failed:", error);
 			return false;
 		  }
-		  console.log('Timeline Data:', timelineData);
 		}
 
 
